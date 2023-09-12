@@ -1,0 +1,46 @@
+{
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/build": true,
+    "**/node_modules": true
+  },
+  "mochaExplorer.require": [
+    "source-map-support/register",
+		"ts-node/register",
+		"hardhat/register",
+    "./.mocha.js"
+  ],
+  "mochaExplorer.files": "./build/test/*.test.js",
+
+  "xmochaExplorer.files1": "./**/*.test.ts",
+  "xmochaExplorer.files2": "./test/*.test.ts",
+  "xmochaExplorer.files": "./test/**/*.test.ts",
+  "xmochaExplorer.ignore": "./node_modules/**/*.test.ts",
+  "xmochaExplorer.require": [
+    "source-map-support/register",
+    "ts-node/register",
+    "hardhat/register"
+  ],
+  "xmochaExplorer.timeout": 40000,
+  "xmochaExplorer.esmLoader": false,
+  "xmochaExplorer.monkeyPatch": false,
+  "[solidity]": {
+    "editor.defaultFormatter": "NomicFoundation.hardhat-solidity",
+  },
+  "search.exclude": {
+    "**/artifacts": true,
+    "**/deployments": true,
+    "**/typechain-types": true
+  },
+  "svn.delete.ignoredRulesForDeletedFiles": [
+    "deployments\\ganacheArbitrum"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  }
+}

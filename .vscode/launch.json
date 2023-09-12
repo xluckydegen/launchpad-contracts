@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "configurations": [
+    {
+      "name": "Launch Hardhat deploy",
+      "request": "launch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "hardhat",
+        "deploy",
+      ],
+      "type": "node",
+    },
+  ]
+}

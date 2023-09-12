@@ -1,0 +1,134 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Compile contracts",
+      "type": "shell",
+      "command": "npx hardhat compile",
+      "group": "build"
+    },
+    {
+      "label": "Compile contracts verbose",
+      "type": "shell",
+      "command": "npx hardhat compile --verbose",
+      "group": "build"
+    },
+    {
+      "label": "Rebuild contracts",
+      "type": "shell",
+      "command": "rm cache -r -fo;rm artifacts -r -fo;rm typechain-types -r -fo; npx hardhat compile",
+      "group": "build"
+    },
+    {
+      "label": "Build code",
+      "type": "shell",
+      "command": "npx tsc --build",
+      "group": "build"
+    },
+    {
+      "label": "Rebuild code",
+      "type": "shell",
+      "command": "rm build -r -fo; npx tsc --build",
+      "group": "build"
+    },    
+    {
+      "label": "autoconfigure",
+      "type": "shell",
+      "command": "npx axtools --autoconfigure",
+      "group": "build"
+    },
+    {
+      "label": "Delete debug.log files",
+      "type": "shell",
+      "command": "Get-ChildItem debug.log -Recurse | foreach { Remove-Item -Path $_.FullName -ErrorAction SilentlyContinue }",
+      "group": "build"
+    },
+    {
+      "label": "Ganache network - ETH fork",
+      "type": "shell",
+      "command": "npx ganache-cli --fork https://eth-mainnet.g.alchemy.com/v2/XVVwGIg6BvsE023PcOKCEavsMwitPoND --chain.chainId 1 --chain.networkId 1 --wallet.mnemonic 'caution junk bid base sphere lyrics connect tiny comic chicken crop label'",
+      "group": "build",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+    },
+    {
+      "label": "Ganache network - ETH Goerli fork",
+      "type": "shell",
+      "command": "npx ganache-cli --fork https://eth-goerli.g.alchemy.com/v2/hU1HWF2CudtfbOP-x2-mNuuynr6BZu11 --chain.chainId 5 --chain.networkId 5 --wallet.mnemonic 'caution junk bid base sphere lyrics connect tiny comic chicken crop label'",
+      "group": "build",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+    },
+    {
+      "label": "Ganache network - Arbitrum fork",
+      "type": "shell",
+      "command": "npx ganache-cli --fork https://arb-mainnet.g.alchemy.com/v2/KyiW3bFamgUPWju2LAB_B0kgNzx7z2dx --chain.chainId 42161 --chain.networkId 42161 --wallet.mnemonic 'caution junk bid base sphere lyrics connect tiny comic chicken crop label'",
+      "group": "build",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+    },
+    {
+      "label": "Ganache network - Arbitrum fork fixed block",
+      "type": "shell",
+      "command": "npx ganache-cli --fork https://arb-mainnet.g.alchemy.com/v2/KyiW3bFamgUPWju2LAB_B0kgNzx7z2dx --chain.chainId 42161 --chain.networkId 42161 --fork.blockNumber 47052015 --wallet.mnemonic 'caution junk bid base sphere lyrics connect tiny comic chicken crop label'",
+      "group": "build",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+    },
+    {
+      "label": "Ganache network - ETH Goerli as local network 9999 fork",
+      "type": "shell",
+      "command": "npx ganache-cli --fork https://eth-goerli.g.alchemy.com/v2/hU1HWF2CudtfbOP-x2-mNuuynr6BZu11 --chain.chainId 9999 --chain.networkId 5 --wallet.mnemonic 'caution junk bid base sphere lyrics connect tiny comic chicken crop label'",
+      "group": "build",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+    },
+    {
+      "label": "Deploy contracts (ganache arbitrum) ",
+      "type": "shell",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+      "command": "npx hardhat deploy --tags ArbiMatDeploy --network ganacheArbitrum",
+      "group": "build"
+    },
+    {
+      "label": "Deploy start coin (ganache arbitrum) ",
+      "type": "shell",
+      "dependsOn": [
+        "Delete debug.log files"
+      ],
+      "command": "npx hardhat run .\\scripts\\ArbiMat_startCoin.ts --network ganacheArbitrum",
+      "group": "build"
+    },
+    {
+      "label": "Export ArbiMap token artifacts (ganache arbitrum)",
+      "type": "shell",
+      "command": "npx hardhat export --export ./export-ganacheArbitrum.json --network ganacheArbitrum",
+      "group": "build"
+    },
+    {
+      "label": "Test contracts",
+      "type": "shell",
+      "command": "npx mocha -r ts-node/register test ./test/*.test.ts",
+      "group": "build"
+    },
+    {
+      "label": "tsc: watch - tsconfig.json",
+      "type": "typescript",
+      "tsconfig": "tsconfig.json",
+      "option": "watch",
+      "problemMatcher": [
+        "$tsc-watch"
+      ],
+      "group": "build"
+    },
+  ]
+}
