@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "./CommunityManager.sol";
-import "./EmergencyWithdraw.sol";
 
 struct CommunityMemberNftData {
     string communityUuid;
@@ -25,8 +24,7 @@ contract CommunityMemberNft is
     ICommunityMemberNft,
     ERC721,
     ERC721Enumerable,
-    AccessControl, 
-    EmergencyWithdraw
+    AccessControl
 {
     //last update
     uint public lastMintedAt;

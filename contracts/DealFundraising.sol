@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./CommunityMemberNft.sol";
 import "./DealManager.sol";
 import "./DealInterestDiscovery.sol";
-import "./EmergencyWithdraw.sol";
 import "hardhat/console.sol";
 
 interface IDealFundraising {
@@ -22,7 +21,7 @@ interface IDealFundraising {
     ) external;
 }
 
-contract DealFundraising is IDealFundraising, AccessControl, EmergencyWithdraw {
+contract DealFundraising is IDealFundraising, AccessControl {
     //last update
     uint256 public lastChangeAt;
     bool public allowedImportingOldDeals = true;

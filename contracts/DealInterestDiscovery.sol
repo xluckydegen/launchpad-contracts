@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./CommunityMemberNft.sol";
 import "./DealManager.sol";
-import "./EmergencyWithdraw.sol";
 
 interface IDealInterestDiscovery {
     //register interest in specific deal (can be called multiple times)
@@ -17,7 +16,7 @@ interface IDealInterestDiscovery {
     ) external view returns (uint256);
 }
 
-contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl, EmergencyWithdraw {
+contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
     //last update
     uint256 public lastChangeAt;
 

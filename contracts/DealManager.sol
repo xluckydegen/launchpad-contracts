@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "./EmergencyWithdraw.sol";
 
 struct DealData {
     string uuid;
@@ -33,7 +32,7 @@ interface IDealManager {
     function getDealById(uint256 id) external view returns (DealData memory);
 }
 
-contract DealManager is IDealManager, AccessControl, EmergencyWithdraw {
+contract DealManager is IDealManager, AccessControl {
     //last update
     uint public lastChangeAt;
 

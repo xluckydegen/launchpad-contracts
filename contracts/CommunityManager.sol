@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./EmergencyWithdraw.sol";
 
 struct CommunityData {
     uint createdAt;
@@ -26,7 +25,7 @@ interface ICommunityManager {
     function countCommunities() external view returns (uint);
 }
 
-contract CommunityManager is ICommunityManager, AccessControl, EmergencyWithdraw {
+contract CommunityManager is ICommunityManager, AccessControl {
     //last update
     uint public lastChangeAt;
 
