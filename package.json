@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "test": "yarn hardhat test",
+    "compile": "yarn hardhat compile && yarn hardhat typechain"
+  },
   "dependencies": {
     "@bugsnag/js": "^7.20.2",
     "@ethersproject/abi": "^5.7.0",
