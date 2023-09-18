@@ -55,7 +55,8 @@ describe("App/CommunityManager", function ()
   {
     const fixt = await fixture();
     await fixt.contractCommunityManager.registerCommunity("1234");
-    await expect(fixt.contractCommunityManager.registerCommunity("1234")).rejectedWith("Community already exists");
+    await expect(fixt.contractCommunityManager.registerCommunity("1234"))
+      .revertedWithCustomError(fixt.contractCommunityManager, "CommunityManager_CommunityAlreadExists");
   });
 
   it("registerCommunity nonOwner", async () =>
@@ -133,7 +134,8 @@ describe("App/CommunityManager", function ()
 
     expect(community1.createdAt).lt(community2.createdAt);
 
-    await expect(fixt.contractCommunityManager.getCommunityById(2)).revertedWith("Out of bounds");
+    await expect(fixt.contractCommunityManager.getCommunityById(2))
+      .revertedWithCustomError(fixt.contractCommunityManager, "CommunityManager_InvalidDealId");
   });
 
   it("countCommunities", async () =>

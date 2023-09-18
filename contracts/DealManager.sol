@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+error DealManager_InvalidDealId();
+error DealManager_InvalidDealData(string msg);
+
 struct DealData {
     string uuid;
     uint createdAt;
@@ -54,6 +57,18 @@ contract DealManager is IDealManager, AccessControl {
     function storeDeal(
         DealData memory deal
     ) public override onlyRole(EDITOR_ROLE) {
+        if ( bytes(deal.uuid).length == 0)
+           revert DealManager_InvalidDealData("IU");
+        if (
+            deal.minAllocation != 0 &&
+            deal.maxAllocation != 0 &&
+            deal.minAllocation > deal.maxAllocation
+        ) revert DealManager_InvalidDealData("MIN");
+        if (deal.totalAllocation < deal.maxAllocation)
+            revert DealManager_InvalidDealData("MAX");
+        if (address(deal.collectedToken) == address(0))
+            revert DealManager_InvalidDealData("TOK");
+
         deal.updatedAt = block.timestamp;
         if (deal.createdAt == 0) deal.createdAt = block.timestamp;
 
@@ -78,7 +93,7 @@ contract DealManager is IDealManager, AccessControl {
     function getDealById(
         uint256 id
     ) public view override returns (DealData memory) {
-        require(id < dealsIndexed.length, "Out of bounds");
+        if (id >= dealsIndexed.length) revert DealManager_InvalidDealId();
         string memory uuid = dealsIndexed[id];
         return deals[uuid];
     }

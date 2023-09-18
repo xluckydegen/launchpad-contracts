@@ -64,7 +64,7 @@ describe("App/DealManager", function ()
       minAllocation: 0,
       maxAllocation: 0,
       totalAllocation: 0,
-      collectedToken: "0x0000000000000000000000000000000000000000",
+      collectedToken: "0x000000000000000000000000000000000000dead",
       ...dealCfg
     };
   }
@@ -80,7 +80,7 @@ describe("App/DealManager", function ()
   it("register deal", async () =>
   {
     const fixt = await fixture();
-    const dealInitial = await getDealStruct({uuid: "1234"});
+    const dealInitial = await getDealStruct({ uuid: "1234" });
     await fixt.contractDealManager.storeDeal(dealInitial);
 
     const deal = await fixt.contractDealManager.deals("1234");
@@ -89,6 +89,42 @@ describe("App/DealManager", function ()
 
     const count = await fixt.contractDealManager.countDeals();
     expect(count).eq(1);
+  });
+
+  it("register deal invalid - addr", async () =>
+  {
+    const fixt = await fixture();
+    const dealInitial = await getDealStruct({ uuid: "1234", collectedToken: "0x0000000000000000000000000000000000000000" });
+    await expect(fixt.contractDealManager.storeDeal(dealInitial))
+      .revertedWithCustomError(fixt.contractDealManager, "DealManager_InvalidDealData")
+      .withArgs("TOK");
+  });
+
+  it("register deal invalid - max", async () =>
+  {
+    const fixt = await fixture();
+    const dealInitial = await getDealStruct({ uuid: "1234", maxAllocation: 10 });
+    await expect(fixt.contractDealManager.storeDeal(dealInitial))
+      .revertedWithCustomError(fixt.contractDealManager, "DealManager_InvalidDealData")
+      .withArgs("MAX");
+  });
+
+  it("register deal invalid - min", async () =>
+  {
+    const fixt = await fixture();
+    const dealInitial = await getDealStruct({ uuid: "1234", minAllocation : 15, maxAllocation: 10, totalAllocation: 20 });
+    await expect(fixt.contractDealManager.storeDeal(dealInitial))
+      .revertedWithCustomError(fixt.contractDealManager, "DealManager_InvalidDealData")
+      .withArgs("MIN");
+  });
+
+  it("register deal invalid - uuid", async () =>
+  {
+    const fixt = await fixture();
+    const dealInitial = await getDealStruct({ uuid: "" });
+    await expect(fixt.contractDealManager.storeDeal(dealInitial))
+      .revertedWithCustomError(fixt.contractDealManager, "DealManager_InvalidDealData")
+      .withArgs("IU");
   });
 
   it("register deal nonOwner", async () =>
@@ -239,7 +275,8 @@ describe("App/DealManager", function ()
 
     expect(deal1.createdAt).lt(deal2.createdAt);
 
-    await expect(fixt.contractDealManager.getDealById(2)).revertedWith("Out of bounds");
+    await expect(fixt.contractDealManager.getDealById(2))
+      .revertedWithCustomError(fixt.contractDealManager, "DealManager_InvalidDealId");
   });
 
   it("countDeals", async () =>

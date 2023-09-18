@@ -51,7 +51,7 @@ describe("App/DealInterestDiscovery", function ()
       contractCommunityManager, contractCommunityMemberNft, contractDealManager, contractDealInterestDiscovery,
       token,
       uuidMainCommunity,
-      walletOwner,walletAdmin,
+      walletOwner, walletAdmin,
       wallet1, wallet2, wallet3,
     };
   }
@@ -97,7 +97,7 @@ describe("App/DealInterestDiscovery", function ()
     const fixt = await fixture();
 
     //create deal
-    await setupDeal(fixt,{
+    await setupDeal(fixt, {
       uuid: "D1",
       interestDiscoveryActive: true,
       minAllocation: 50,
@@ -138,7 +138,7 @@ describe("App/DealInterestDiscovery", function ()
       totalAllocation: 300,
       collectedToken: fixt.token.address
     });
-   
+
     //mint nft community
     await fixt.contractCommunityMemberNft.connect(fixt.wallet1).mintCommunity(fixt.uuidMainCommunity);
     await fixt.contractCommunityMemberNft.connect(fixt.wallet2).mintCommunity(fixt.uuidMainCommunity);
@@ -184,7 +184,7 @@ describe("App/DealInterestDiscovery", function ()
 
     const interestW1 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
     expect(interestW1.toNumber()).eq(100);
-    
+
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 50);
 
@@ -202,6 +202,39 @@ describe("App/DealInterestDiscovery", function ()
 
     const interestW3 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
     expect(interestW3.toNumber()).eq(200);
+  });
+
+  it("storno allocation", async () =>
+  {
+    const fixt = await fixture();
+
+    //create deal
+    await setupDeal(fixt, {
+      uuid: "D1",
+      interestDiscoveryActive: true,
+      minAllocation: 50,
+      maxAllocation: 200,
+      totalAllocation: 300,
+      collectedToken: fixt.token.address
+    });
+
+    //register interest
+    await fixt.contractDealInterestDiscovery.registerInterest("D1", 100);
+
+    const interest1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
+    expect(interest1.toNumber()).eq(100);
+
+    const interestW1 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
+    expect(interestW1.toNumber()).eq(100);
+
+    //register interest
+    await fixt.contractDealInterestDiscovery.registerInterest("D1", 0);
+
+    const interest2 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
+    expect(interest2.toNumber()).eq(0);
+
+    const interestW2 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
+    expect(interestW2.toNumber()).eq(0);
   });
 
   it("modify allocation with other existing interest", async () =>
@@ -256,7 +289,8 @@ describe("App/DealInterestDiscovery", function ()
     const fixt = await fixture();
 
     //register interest
-    await expect(fixt.contractDealInterestDiscovery.registerInterest("Dx", 100)).revertedWith("Unknown deal");
+    await expect(fixt.contractDealInterestDiscovery.registerInterest("Dx", 100))
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery,"DealInterestDiscovery_UnknownDeal");
   });
 
   it("attempt register to deal without NFT", async () =>
@@ -274,7 +308,8 @@ describe("App/DealInterestDiscovery", function ()
     });
 
     //register interest
-    await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 100)).revertedWith("Wallet is not DAO member");
+    await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 100))
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery,"DealInterestDiscovery_NotDaoMember");
   });
 
   it("attempt register with zero amount", async () =>
@@ -310,7 +345,8 @@ describe("App/DealInterestDiscovery", function ()
     });
 
     //register interest
-    await expect(fixt.contractDealInterestDiscovery.registerInterest("D1", 10)).revertedWith("Minimum allocation not met");
+    await expect(fixt.contractDealInterestDiscovery.registerInterest("D1", 10))
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_MinimumNotMet");
   });
 
   it("attempt register with too mouch amount", async () =>
@@ -328,7 +364,8 @@ describe("App/DealInterestDiscovery", function ()
     });
 
     //register interest
-    await expect(fixt.contractDealInterestDiscovery.registerInterest("D1", 300)).revertedWith("Maximum allocation not met");
+    await expect(fixt.contractDealInterestDiscovery.registerInterest("D1", 300))
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_MaximumNotMet");
   });
 
   it("attempt register with not active discovery phase", async () =>
@@ -346,7 +383,8 @@ describe("App/DealInterestDiscovery", function ()
     });
 
     //register interest
-    await expect(fixt.contractDealInterestDiscovery.registerInterest("D1", 100)).revertedWith("Interest discovery not active");
+    await expect(fixt.contractDealInterestDiscovery.registerInterest("D1", 100))
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_InterestDiscoveryNotActive");
   });
 
   it("attempt register with enough amount to not enough pool", async () =>
@@ -365,7 +403,7 @@ describe("App/DealInterestDiscovery", function ()
 
     //mint nft community
     await fixt.contractCommunityMemberNft.connect(fixt.wallet1).mintCommunity(fixt.uuidMainCommunity);
-    
+
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 200);
 
@@ -373,7 +411,8 @@ describe("App/DealInterestDiscovery", function ()
     expect(interest1.toNumber()).eq(200);
 
     //register interest
-    await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 200)).revertedWith("Total allocation reached");
+    await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 200))
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_TotalAllocationReached");
   });
 
 });

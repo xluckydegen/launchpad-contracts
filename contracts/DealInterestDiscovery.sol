@@ -5,6 +5,13 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./CommunityMemberNft.sol";
 import "./DealManager.sol";
 
+error DealInterestDiscovery_UnknownDeal();
+error DealInterestDiscovery_NotDaoMember();
+error DealInterestDiscovery_MinimumNotMet();
+error DealInterestDiscovery_MaximumNotMet();
+error DealInterestDiscovery_InterestDiscoveryNotActive();
+error DealInterestDiscovery_TotalAllocationReached();
+
 interface IDealInterestDiscovery {
     //register interest in specific deal (can be called multiple times)
     function registerInterest(string memory dealUuid, uint256 amount) external;
@@ -40,19 +47,22 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
         communityMemberNfts = _communityMemberNfts;
     }
 
-    function registerInterest(
-        string memory dealUuid,
-        uint256 amount
-    ) public override {
-        require(dealManager.existDealByUuid(dealUuid), "Unknown deal");
-        require(
-            communityMemberNfts.hasCommunityNft(msg.sender),
-            "Wallet is not DAO member"
-        );
+    function registerInterest(string memory dealUuid, uint256 amount) public {
+        if (!dealManager.existDealByUuid(dealUuid))
+            revert DealInterestDiscovery_UnknownDeal();
+
+        if (!communityMemberNfts.hasCommunityNft(msg.sender))
+            revert DealInterestDiscovery_NotDaoMember();
+
         DealData memory deal = dealManager.getDealByUuid(dealUuid);
-        require(deal.minAllocation <= amount, "Minimum allocation not met");
-        require(deal.maxAllocation >= amount, "Maximum allocation not met");
-        require(deal.interestDiscoveryActive, "Interest discovery not active");
+        if (deal.minAllocation > amount && amount != 0)
+            revert DealInterestDiscovery_MinimumNotMet();
+
+        if (deal.maxAllocation < amount)
+            revert DealInterestDiscovery_MaximumNotMet();
+
+        if (!deal.interestDiscoveryActive)
+            revert DealInterestDiscovery_InterestDiscoveryNotActive();
 
         uint256 previousAmount = dealsWalletsInterest[dealUuid][msg.sender];
         uint256 totalCollected = dealsInterest[dealUuid];
@@ -61,10 +71,8 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
 
         if (amount > previousAmount) {
             uint256 diffAmount = amount - previousAmount;
-            require(
-                totalCollected + diffAmount <= deal.totalAllocation,
-                "Total allocation reached"
-            );
+            if (totalCollected + diffAmount > deal.totalAllocation)
+                revert DealInterestDiscovery_TotalAllocationReached();
 
             dealsInterest[dealUuid] = totalCollected + diffAmount;
         } else {

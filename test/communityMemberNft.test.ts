@@ -134,7 +134,8 @@ describe("App/CommunityMemberNft", function ()
   it("Test mint unknown community", async () =>
   {
     const fixt = await fixture();
-    await expect(fixt.contractCommunityMemberNft.mintCommunity("xxxx")).revertedWith("Unknown community ID");
+    await expect(fixt.contractCommunityMemberNft.mintCommunity("xxxx"))
+      .revertedWithCustomError(fixt.contractCommunityMemberNft,"CommunityMemberNft_UnknownCommunityId");
   });
 
   it("Test mint double", async () =>
@@ -145,7 +146,8 @@ describe("App/CommunityMemberNft", function ()
     const amountW1 = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
     expect(amountW1).eq(1);
 
-    await expect(fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity)).revertedWith("Only one mint allowed");
+    await expect(fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity))
+      .revertedWithCustomError(fixt.contractCommunityMemberNft,"CommunityMemberNft_OnlyOneMintAllowed");
   });
 
   it("Test minted info", async () =>
@@ -179,7 +181,8 @@ describe("App/CommunityMemberNft", function ()
     expect(logs.length).gt(0);
     const tokenId = logs[0]!.args.tokenId.toNumber();
 
-    await expect(fixt.contractCommunityMemberNft.transferFrom(fixt.walletOwner.address, fixt.wallet1.address, tokenId)).revertedWith("Soulbound NFT cant be transferred");
+    await expect(fixt.contractCommunityMemberNft.transferFrom(fixt.walletOwner.address, fixt.wallet1.address, tokenId))
+      .revertedWithCustomError(fixt.contractCommunityMemberNft,"CommunityMemberNft_NotTransferable");
 
     const amountWO = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
     expect(amountWO.toNumber()).eq(1);

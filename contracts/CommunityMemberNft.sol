@@ -9,6 +9,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "./CommunityManager.sol";
 
+error CommunityMemberNft_UnknownCommunityId();
+error CommunityMemberNft_OnlyOneMintAllowed();
+error CommunityMemberNft_NotTransferable();
+
 struct CommunityMemberNftData {
     string communityUuid;
     uint createdAt;
@@ -16,7 +20,9 @@ struct CommunityMemberNftData {
 
 interface ICommunityMemberNft {
     function mint() external;
+
     function mintCommunity(string memory communityUuid) external;
+
     function hasCommunityNft(address wallet) external view returns (bool);
 }
 
@@ -55,11 +61,10 @@ contract CommunityMemberNft is
     }
 
     function mintCommunity(string memory communityUuid) public override {
-        require(
-            communityManager.existCommunityByUuid(communityUuid),
-            "Unknown community ID"
-        );
-        require(balanceOf(msg.sender) == 0, "Only one mint allowed");
+        if (!communityManager.existCommunityByUuid(communityUuid))
+            revert CommunityMemberNft_UnknownCommunityId();
+        if (balanceOf(msg.sender) != 0)
+            revert CommunityMemberNft_OnlyOneMintAllowed();
 
         lastMintedAt = block.timestamp;
         uint256 tokenId = _tokenIdCounter.current();
@@ -84,10 +89,9 @@ contract CommunityMemberNft is
         uint256 firstTokenId,
         uint256 batchSize
     ) internal override(ERC721, ERC721Enumerable) {
-        require(
-            from == address(0) || to == address(0),
-            "Soulbound NFT cant be transferred"
-        );
+        if (from != address(0) && to != address(0))
+            revert CommunityMemberNft_NotTransferable();
+
         super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
     }
 

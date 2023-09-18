@@ -3,9 +3,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+error CommunityManager_CommunityAlreadExists();
+error CommunityManager_InvalidDealId();
+
 struct CommunityData {
     uint createdAt;
 }
+
 
 interface ICommunityManager {
     function registerCommunity(string memory uuid) external;
@@ -46,7 +50,8 @@ contract CommunityManager is ICommunityManager, AccessControl {
     function registerCommunity(
         string memory uuid
     ) public override onlyRole(EDITOR_ROLE) {
-        require(communities[uuid].createdAt == 0, "Community already exists");
+        if (communities[uuid].createdAt != 0)
+            revert CommunityManager_CommunityAlreadExists();
 
         lastChangeAt = block.timestamp;
         communities[uuid] = CommunityData(block.timestamp);
@@ -67,7 +72,10 @@ contract CommunityManager is ICommunityManager, AccessControl {
     function getCommunityById(
         uint256 id
     ) public view override returns (CommunityData memory) {
-        require(id < communitiesIndexed.length, "Out of bounds");
+        if (id >= communitiesIndexed.length)
+            revert CommunityManager_InvalidDealId();
+
+        //require(id < communitiesIndexed.length, "Out of bounds");
         string memory uuid = communitiesIndexed[id];
         return communities[uuid];
     }
