@@ -59,6 +59,7 @@ contract DealManager is IDealManager, AccessControl {
     ) public override onlyRole(EDITOR_ROLE) {
         if ( bytes(deal.uuid).length == 0)
            revert DealManager_InvalidDealData("IU");
+        // @audit 0 values for min/max allocation allowed?
         if (
             deal.minAllocation != 0 &&
             deal.maxAllocation != 0 &&

@@ -164,7 +164,7 @@ describe("App/DealFundraising", function ()
 
     //create deal
     await setupDeal(fixt, {
-      uuid: "D1",
+      uuid: 'D1',
       interestDiscoveryActive: true,
       fundraisingActiveForEveryone: true,
       minAllocation: ta(50),
@@ -172,30 +172,62 @@ describe("App/DealFundraising", function ()
       totalAllocation: ta(400),
     });
 
-    const balanceWallet1UsdcBefore = await fixt.tokenUSDC.balanceOf(fixt.walletMember1.address);
-    const balanceWallet2UsdcBefore = await fixt.tokenUSDC.balanceOf(fixt.walletMember2.address);
-    const balanceContractUsdcBefore = await fixt.tokenUSDC.balanceOf(fixt.contractDealFundraising.address);
+    const balanceWallet1UsdcBefore = await fixt.tokenUSDC.balanceOf(
+      fixt.walletMember1.address
+    );
+    const balanceWallet2UsdcBefore = await fixt.tokenUSDC.balanceOf(
+      fixt.walletMember2.address
+    );
+    const balanceContractUsdcBefore = await fixt.tokenUSDC.balanceOf(
+      fixt.contractDealFundraising.address
+    );
 
     //send money to deal
-    await fixt.tokenUSDC.connect(fixt.walletMember1).approve(fixt.contractDealFundraising.address, maxBigInt);
-    await fixt.tokenUSDC.connect(fixt.walletMember2).approve(fixt.contractDealFundraising.address, maxBigInt);
-    await fixt.contractDealFundraising.connect(fixt.walletMember1).purchase("D1", ta(200));
-    await fixt.contractDealFundraising.connect(fixt.walletMember2).purchase("D1", ta(200));
+    await fixt.tokenUSDC
+      .connect(fixt.walletMember1)
+      .approve(fixt.contractDealFundraising.address, maxBigInt);
+    await fixt.tokenUSDC
+      .connect(fixt.walletMember2)
+      .approve(fixt.contractDealFundraising.address, maxBigInt);
+    await fixt.contractDealFundraising
+      .connect(fixt.walletMember1)
+      .purchase('D1', ta(200));
+    await fixt.contractDealFundraising
+      .connect(fixt.walletMember2)
+      .purchase('D1', ta(200));
 
-    const depositedD1 = await fixt.contractDealFundraising.dealsDeposits("D1");
+    const depositedD1 = await fixt.contractDealFundraising.dealsDeposits('D1');
     expect(depositedD1).eq(ta(400));
 
-    const depositedWOD1 = await fixt.contractDealFundraising.dealsWalletsDeposits("D1", fixt.walletMember1.address);
-    const depositedWOD2 = await fixt.contractDealFundraising.dealsWalletsDeposits("D1", fixt.walletMember2.address);
+    const depositedWOD1 =
+      await fixt.contractDealFundraising.dealsWalletsDeposits(
+        'D1',
+        fixt.walletMember1.address
+      );
+    const depositedWOD2 =
+      await fixt.contractDealFundraising.dealsWalletsDeposits(
+        'D1',
+        fixt.walletMember2.address
+      );
     expect(depositedWOD1).eq(ta(200));
     expect(depositedWOD2).eq(ta(200));
 
-    const balanceWallet1UsdcAfter = await fixt.tokenUSDC.balanceOf(fixt.walletMember1.address);
-    const balanceWallet2UsdcAfter = await fixt.tokenUSDC.balanceOf(fixt.walletMember2.address);
-    const balanceContractUsdcAfter = await fixt.tokenUSDC.balanceOf(fixt.contractDealFundraising.address);
+    const balanceWallet1UsdcAfter = await fixt.tokenUSDC.balanceOf(
+      fixt.walletMember1.address
+    );
+    const balanceWallet2UsdcAfter = await fixt.tokenUSDC.balanceOf(
+      fixt.walletMember2.address
+    );
+    const balanceContractUsdcAfter = await fixt.tokenUSDC.balanceOf(
+      fixt.contractDealFundraising.address
+    );
     expect(balanceWallet1UsdcAfter.sub(balanceWallet1UsdcBefore)).eq(ta(-200));
     expect(balanceWallet2UsdcAfter.sub(balanceWallet2UsdcBefore)).eq(ta(-200));
     expect(balanceContractUsdcAfter.sub(balanceContractUsdcBefore)).eq(ta(400));
+
+    // test dealsWalletsChangesCount
+    const dealsWalletsChangesCount = await fixt.contractDealFundraising.dealsWalletsChangesCount('D1');
+    expect(dealsWalletsChangesCount).eq(2);
   });
 
 
@@ -827,6 +859,14 @@ describe("App/DealFundraising", function ()
     expect(balanceWallet1UsdcAfter.sub(balanceWallet1UsdcBefore)).eq(ta(-100));
     expect(balanceWallet4UsdcAfter.sub(balanceWallet4UsdcBefore)).eq(ta(100));
     expect(balanceContractUsdcAfter.sub(balanceContractUsdcBefore)).eq(0);
+
+    // test: nothing to withdraw as nothing left
+    await expect(
+      fixt.contractDealFundraising.withdrawFundraisedTokens(
+        'D1',
+        fixt.walletNonMember2.address
+      )
+    ).revertedWithCustomError(fixt.contractDealFundraising, "DealFundraising_NothingToWithdraw");
   });
 
   it("withdraw one deal of many", async () =>
@@ -991,5 +1031,4 @@ describe("App/DealFundraising", function ()
     expect(balanceWallet4UsdcAfter.sub(balanceWallet4UsdcBefore)).eq(0);
     expect(balanceContractUsdcAfter.sub(balanceContractUsdcBefore)).eq(ta(100));
   });
-
 });
