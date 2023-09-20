@@ -56,7 +56,8 @@ contract CommunityMemberNft is
         defaultCommunityUuid = _defaultCommunityUuid;
     }
 
-    function mint() public override {
+    // making external as function is not called in the contract itself
+    function mint() external override {
         mintCommunity(defaultCommunityUuid);
     }
 
