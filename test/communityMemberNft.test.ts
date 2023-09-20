@@ -56,53 +56,6 @@ describe("App/CommunityMemberNft", function ()
     });
     return parsedLogs;
   }
-  /*
-  function decodeTransactionLogs(trans: ContractTransaction ): Array<EthersDecodedLogEvent>
-  {
-    const iface = this.getInterface();
-    return EthersContractCore.decodeExternalTransactionLogs(iface, trans);
-  }
-
-  function decodeExternalTransactionLogs(iface: Interface | Array<any>, trans: TransactionReceipt | EthersTransactionCallResult): Array<EthersDecodedLogEvent>
-  {
-    if ("transactionReceipt" in trans)
-      trans = trans.transactionReceipt;
-
-    if (iface instanceof Array)
-      iface = new Interface(iface);
-
-    const results: Array<EthersDecodedLogEvent> = new Array();
-    for (const log of trans.logs)
-    {
-      const parsedLog = this.decodeExternalTransactionLog(iface, log);
-      if (parsedLog)
-        results.push(parsedLog);
-    }
-    return results;
-  }
-
-  function decodeExternalTransactionLog(iface: Interface | Array<any>, log: Log): EthersDecodedLogEvent | undefined
-  {
-    if (iface instanceof Array)
-      iface = new Interface(iface);
-
-    try
-    {
-      const parsedLog = iface.parseLog(log);
-      return {
-        log: log,
-        parsedLog: parsedLog,
-        address: log.address,
-        name: parsedLog.name,
-        args: parsedLog.args,
-      };
-    }
-    catch (e)
-    {
-      //unknown event not from this iface
-    }
-  }*/
-
 
   async function fixture()
   {
@@ -196,17 +149,6 @@ describe("App/CommunityMemberNft", function ()
     expect(data.communityUuid).eq(fixt.uuidMainCommunity);
   });
 
-  it("Test Uri", async () =>
-  {
-    const fixt = await fixture();
-    const tx = await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
-    const logs = await parseLogsFromTransaction(fixt.contractCommunityMemberNft, tx);
-    expect(logs.length).gt(0);
-    const tokenId = logs[0]!.args.tokenId.toNumber();
-    const uri = await fixt.contractCommunityMemberNft.tokenURI(tokenId);
-    expect(uri).eq("baseuritest0");
-  });
-
   it("Test transfer", async () =>
   {
     const fixt = await fixture();
@@ -229,6 +171,35 @@ describe("App/CommunityMemberNft", function ()
 
     const hasNftW1 = await fixt.contractCommunityMemberNft.hasCommunityNft(fixt.wallet1.address);
     expect(hasNftW1).eq(false);
+  });
+
+  it("Test Uri", async () =>
+  {
+    const fixt = await fixture();
+    const tx = await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
+    const logs = await parseLogsFromTransaction(fixt.contractCommunityMemberNft, tx);
+    expect(logs.length).gt(0);
+    const tokenId = logs[0]!.args.tokenId.toNumber();
+    const uri = await fixt.contractCommunityMemberNft.tokenURI(tokenId);
+    expect(uri).eq("https://api-testnet.angelssquad.com/nft/member?id=1");
+  });
+
+  it("Nft metadata", async () =>
+  {
+    const fixt = await fixture();
+    await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
+
+    const amountWO = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
+    expect(amountWO.toNumber()).eq(1);
+
+    const index = await fixt.contractCommunityMemberNft.tokenOfOwnerByIndex(fixt.walletOwner.address, 0);
+    expect(index).eq(1);
+
+    const ownerAddress = await fixt.contractCommunityMemberNft.ownerOf(1);
+    expect(ownerAddress).eq(fixt.walletOwner.address);
+
+    const uri = await fixt.contractCommunityMemberNft.tokenURI(1);
+    expect(uri).eq("https://api-testnet.angelssquad.com/nft/member?id=1");
   });
 
 });

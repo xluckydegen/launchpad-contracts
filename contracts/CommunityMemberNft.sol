@@ -53,7 +53,7 @@ contract CommunityMemberNft is
     constructor(
         ICommunityManager _communityManager,
         string memory _defaultCommunityUuid
-    ) ERC721("CommunityMemberNft", "CommunityMemberNft") {
+    ) ERC721("AngelsSquadMemberNft", "ASNFT") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(EDITOR_ROLE, msg.sender);
         communityManager = _communityManager;
@@ -132,6 +132,6 @@ contract CommunityMemberNft is
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "baseuritest";
+        return "https://api-testnet.angelssquad.com/nft/member?id=";
     }
 }
