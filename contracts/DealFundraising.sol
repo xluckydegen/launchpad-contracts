@@ -112,6 +112,8 @@ contract DealFundraising is IDealFundraising, AccessControl {
         if (recipients.length != amounts.length)
             revert DealFundraising_InputDataError();
 
+        // @audit could the function run out of gas and thus always fail? would it be safer to have another function
+        // which could add/remove recipients one by one? 
         for (uint n = 0; n < recipients.length; n++)
             internalRegisterPurchase(recipients[n], dealUuid, amounts[n]);
     }
