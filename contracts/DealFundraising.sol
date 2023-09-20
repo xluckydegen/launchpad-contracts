@@ -24,6 +24,7 @@ error DealFundraising_RefundNotAllowed();
 error DealFundraising_NothingToRefund();
 error DealFundraising_NothingToWithdraw();
 error DealFundraising_NotEnoughTokens();
+error DealFundraising_ZeroAddress();
 
 interface IDealFundraising {
     //register interest in specific deal (can be called multiple times)
@@ -79,7 +80,8 @@ contract DealFundraising is IDealFundraising, AccessControl {
         dealInterestDiscovery = _dealInterestDiscovery;
     }
 
-    function purchase(string memory dealUuid, uint256 amount) public override {
+    // making external as function is not called in the contract itself
+    function purchase(string memory dealUuid, uint256 amount) external override {
         if (!communityMemberNfts.hasCommunityNft(msg.sender))
             revert DealFundraising_NotDaoMember();
 
@@ -99,21 +101,25 @@ contract DealFundraising is IDealFundraising, AccessControl {
         emit WalletPurchased(dealUuid, msg.sender, amount);
     }
 
+    // making external as function is not called in the contract itself
     function importOldDealPurchase(
         string memory dealUuid,
         address[] memory recipients,
         uint256[] memory amounts
-    ) public onlyRole(EDITOR_ROLE) {
+    ) external onlyRole(EDITOR_ROLE) {
         if (!allowedImportingOldDeals)
             revert DealFundraising_ImportingNotAllowed();
         if (recipients.length != amounts.length)
             revert DealFundraising_InputDataError();
 
+        // @audit could the function run out of gas and thus always fail? would it be safer to have another function
+        // which could add/remove recipients one by one? 
         for (uint n = 0; n < recipients.length; n++)
             internalRegisterPurchase(recipients[n], dealUuid, amounts[n]);
     }
 
-    function revokeImportingOldDealPurchases() public onlyRole(EDITOR_ROLE) {
+    // making external as function is not called in the contract itself
+    function revokeImportingOldDealPurchases() external onlyRole(EDITOR_ROLE) {
         allowedImportingOldDeals = false;
     }
 
@@ -160,7 +166,8 @@ contract DealFundraising is IDealFundraising, AccessControl {
         return deal;
     }
 
-    function refund(string memory dealUuid) public {
+    // making external as function is not called in the contract itself
+    function refund(string memory dealUuid) external {
         if (!dealManager.existDealByUuid(dealUuid))
             revert DealFundraising_UnknownDeal();
         DealData memory deal = dealManager.getDealByUuid(dealUuid);
@@ -183,10 +190,15 @@ contract DealFundraising is IDealFundraising, AccessControl {
         emit WalletRefunded(dealUuid, msg.sender, depositedAmount);
     }
 
+    // making external as function is not called in the contract itself
     function withdrawFundraisedTokens(
         string memory dealUuid,
         address withdrawDestination
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        // @note to prevent from accidentally burning tokens
+        if (withdrawDestination == address(0)) {
+            revert DealFundraising_ZeroAddress();
+        }
         if (!dealManager.existDealByUuid(dealUuid))
             revert DealFundraising_UnknownDeal();
         DealData memory deal = dealManager.getDealByUuid(dealUuid);
@@ -211,9 +223,10 @@ contract DealFundraising is IDealFundraising, AccessControl {
         );
     }
 
+    // making external as function is not called in the contract itself
     function dealsWalletsChangesCount(
         string memory dealUuid
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         return dealsWalletsChanges[dealUuid].length;
     }
 }

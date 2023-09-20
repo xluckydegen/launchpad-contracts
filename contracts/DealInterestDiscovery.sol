@@ -47,7 +47,8 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
         communityMemberNfts = _communityMemberNfts;
     }
 
-    function registerInterest(string memory dealUuid, uint256 amount) public {
+    // making external as function is not called in the contract itself
+    function registerInterest(string memory dealUuid, uint256 amount) external {
         if (!dealManager.existDealByUuid(dealUuid))
             revert DealInterestDiscovery_UnknownDeal();
 
@@ -93,9 +94,10 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
         return dealsWalletsInterest[dealUuid][wallet];
     }
 
+    // making external as function is not called in the contract itself
     function dealsWalletsChangesCount(
         string memory dealUuid
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         return dealsWalletsChanges[dealUuid].length;
     }
 }

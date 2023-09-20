@@ -47,9 +47,10 @@ contract CommunityManager is ICommunityManager, AccessControl {
         _grantRole(EDITOR_ROLE, msg.sender);
     }
 
+    // making external as function is not called in the contract itself
     function registerCommunity(
         string memory uuid
-    ) public override onlyRole(EDITOR_ROLE) {
+    ) external override onlyRole(EDITOR_ROLE) {
         if (communities[uuid].createdAt != 0)
             revert CommunityManager_CommunityAlreadExists();
 
@@ -65,13 +66,15 @@ contract CommunityManager is ICommunityManager, AccessControl {
         return communities[uuid].createdAt != 0;
     }
 
-    function countCommunities() public view override returns (uint) {
+    // making external as function is not called in the contract itself
+    function countCommunities() external view override returns (uint) {
         return communitiesIndexed.length;
     }
 
+    // making external as function is not called in the contract itself
     function getCommunityById(
         uint256 id
-    ) public view override returns (CommunityData memory) {
+    ) external view override returns (CommunityData memory) {
         if (id >= communitiesIndexed.length)
             revert CommunityManager_InvalidDealId();
 
@@ -80,9 +83,10 @@ contract CommunityManager is ICommunityManager, AccessControl {
         return communities[uuid];
     }
 
+    // making external as function is not called in the contract itself
     function getCommunityByUuid(
         string memory uuid
-    ) public view override returns (CommunityData memory) {
+    ) external view override returns (CommunityData memory) {
         return communities[uuid];
     }
 }
