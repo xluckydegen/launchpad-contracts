@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-
 import "./CommunityManager.sol";
 
 error CommunityMemberNft_UnknownCommunityId();
@@ -48,15 +47,19 @@ contract CommunityMemberNft is
     //events
     event MemberNftMinted(string communityUuid, address owner, uint256 tokenId);
 
+    //role
+    bytes32 public constant EDITOR_ROLE = keccak256("EDITOR");
+
     constructor(
         ICommunityManager _communityManager,
         string memory _defaultCommunityUuid
     ) ERC721("CommunityMemberNft", "CommunityMemberNft") {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(EDITOR_ROLE, msg.sender);
         communityManager = _communityManager;
         defaultCommunityUuid = _defaultCommunityUuid;
     }
 
-    // making external as function is not called in the contract itself
     function mint() external override {
         mintCommunity(defaultCommunityUuid);
     }
@@ -68,7 +71,7 @@ contract CommunityMemberNft is
             revert CommunityMemberNft_OnlyOneMintAllowed();
 
         lastMintedAt = block.timestamp;
-        uint256 tokenId = _tokenIdCounter.current();
+        uint256 tokenId = _tokenIdCounter.current() + 1;
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
         nftData[tokenId] = CommunityMemberNftData(
@@ -77,6 +80,27 @@ contract CommunityMemberNft is
         );
 
         emit MemberNftMinted(communityUuid, msg.sender, tokenId);
+    }
+
+    function massMintCommunity(
+        string memory communityUuid,
+        address[] memory receivers
+    ) external onlyRole(EDITOR_ROLE) {
+        if (!communityManager.existCommunityByUuid(communityUuid))
+            revert CommunityMemberNft_UnknownCommunityId();
+
+        lastMintedAt = block.timestamp;
+        for (uint256 n = 0; n < receivers.length; n++) {
+            address receiver = receivers[n];
+            if (balanceOf(receiver) != 0) continue;
+            uint256 tokenId = _tokenIdCounter.current() + 1;
+            _tokenIdCounter.increment();
+            _safeMint(receiver, tokenId);
+            nftData[tokenId] = CommunityMemberNftData(
+                communityUuid,
+                block.timestamp
+            );
+        }
     }
 
     function hasCommunityNft(address wallet) external view returns (bool) {

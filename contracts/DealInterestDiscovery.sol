@@ -11,6 +11,8 @@ error DealInterestDiscovery_MinimumNotMet();
 error DealInterestDiscovery_MaximumNotMet();
 error DealInterestDiscovery_InterestDiscoveryNotActive();
 error DealInterestDiscovery_TotalAllocationReached();
+error DealInterestDiscovery_ImportingNotAllowed();
+error DealInterestDiscovery_InputDataError();
 
 interface IDealInterestDiscovery {
     //register interest in specific deal (can be called multiple times)
@@ -26,6 +28,7 @@ interface IDealInterestDiscovery {
 contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
     //last update
     uint256 public lastChangeAt;
+    bool public allowedImportingOldDeals = true;
 
     IDealManager dealManager;
     ICommunityMemberNft communityMemberNfts;
@@ -39,20 +42,50 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
     //events
     event WalletRegistered(string dealUuid, address wallet, uint256 amount);
 
+    //role
+    bytes32 public constant EDITOR_ROLE = keccak256("EDITOR");
+
     constructor(
         IDealManager _dealManager,
         ICommunityMemberNft _communityMemberNfts
     ) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(EDITOR_ROLE, msg.sender);
         dealManager = _dealManager;
         communityMemberNfts = _communityMemberNfts;
     }
 
-    // making external as function is not called in the contract itself
     function registerInterest(string memory dealUuid, uint256 amount) external {
+        internalRegisterInterest(msg.sender, dealUuid, amount);
+    }
+
+    function importOldDealInterests(
+        string memory dealUuid,
+        address[] memory recipients,
+        uint256[] memory amounts
+    ) external onlyRole(EDITOR_ROLE) {
+        if (!allowedImportingOldDeals)
+            revert DealInterestDiscovery_ImportingNotAllowed();
+        if (recipients.length != amounts.length)
+            revert DealInterestDiscovery_InputDataError();
+
+        for (uint n = 0; n < recipients.length; n++)
+            internalRegisterInterest(recipients[n], dealUuid, amounts[n]);
+    }
+
+    function revokeImportingOldDealInterests() external onlyRole(EDITOR_ROLE) {
+        allowedImportingOldDeals = false;
+    }
+
+    function internalRegisterInterest(
+        address recipient,
+        string memory dealUuid,
+        uint256 amount
+    ) internal {
         if (!dealManager.existDealByUuid(dealUuid))
             revert DealInterestDiscovery_UnknownDeal();
 
-        if (!communityMemberNfts.hasCommunityNft(msg.sender))
+        if (!communityMemberNfts.hasCommunityNft(recipient))
             revert DealInterestDiscovery_NotDaoMember();
 
         DealData memory deal = dealManager.getDealByUuid(dealUuid);
@@ -65,10 +98,10 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
         if (!deal.interestDiscoveryActive)
             revert DealInterestDiscovery_InterestDiscoveryNotActive();
 
-        uint256 previousAmount = dealsWalletsInterest[dealUuid][msg.sender];
+        uint256 previousAmount = dealsWalletsInterest[dealUuid][recipient];
         uint256 totalCollected = dealsInterest[dealUuid];
-        dealsWalletsInterest[dealUuid][msg.sender] = amount;
-        dealsWalletsChanges[dealUuid].push(msg.sender);
+        dealsWalletsInterest[dealUuid][recipient] = amount;
+        dealsWalletsChanges[dealUuid].push(recipient);
 
         if (amount > previousAmount) {
             uint256 diffAmount = amount - previousAmount;
@@ -83,18 +116,17 @@ contract DealInterestDiscovery is IDealInterestDiscovery, AccessControl {
 
         lastChangeAt = block.timestamp;
         dealsLastChangeAt[dealUuid] = block.timestamp;
-        emit WalletRegistered(dealUuid, msg.sender, amount);
+        emit WalletRegistered(dealUuid, recipient, amount);
     }
 
     //preregistered amount check
     function getRegisteredAmount(
         string memory dealUuid,
         address wallet
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         return dealsWalletsInterest[dealUuid][wallet];
     }
 
-    // making external as function is not called in the contract itself
     function dealsWalletsChangesCount(
         string memory dealUuid
     ) external view returns (uint256) {

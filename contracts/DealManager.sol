@@ -54,13 +54,11 @@ contract DealManager is IDealManager, AccessControl {
         _grantRole(EDITOR_ROLE, msg.sender);
     }
 
-    // making external as function is not called in the contract itself
     function storeDeal(
         DealData memory deal
     ) external override onlyRole(EDITOR_ROLE) {
         if ( bytes(deal.uuid).length == 0)
            revert DealManager_InvalidDealData("IU");
-        // @audit 0 values for min/max allocation allowed?
         if (
             deal.minAllocation != 0 &&
             deal.maxAllocation != 0 &&
@@ -84,16 +82,14 @@ contract DealManager is IDealManager, AccessControl {
 
     function existDealByUuid(
         string memory uuid
-    ) public view override returns (bool) {
+    ) external view override returns (bool) {
         return deals[uuid].createdAt != 0;
     }
 
-    // making external as function is not called in the contract itself
     function countDeals() external view override returns (uint) {
         return dealsIndexed.length;
     }
 
-    // making external as function is not called in the contract itself
     function getDealById(
         uint256 id
     ) external view override returns (DealData memory) {
@@ -104,7 +100,7 @@ contract DealManager is IDealManager, AccessControl {
 
     function getDealByUuid(
         string memory uuid
-    ) public view override returns (DealData memory) {
+    ) external view override returns (DealData memory) {
         return deals[uuid];
     }
 }

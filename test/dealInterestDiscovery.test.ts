@@ -290,7 +290,7 @@ describe("App/DealInterestDiscovery", function ()
 
     //register interest
     await expect(fixt.contractDealInterestDiscovery.registerInterest("Dx", 100))
-      .revertedWithCustomError(fixt.contractDealInterestDiscovery,"DealInterestDiscovery_UnknownDeal");
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_UnknownDeal");
   });
 
   it("attempt register to deal without NFT", async () =>
@@ -309,7 +309,7 @@ describe("App/DealInterestDiscovery", function ()
 
     //register interest
     await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 100))
-      .revertedWithCustomError(fixt.contractDealInterestDiscovery,"DealInterestDiscovery_NotDaoMember");
+      .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_NotDaoMember");
   });
 
   it("attempt register with zero amount", async () =>
@@ -413,6 +413,43 @@ describe("App/DealInterestDiscovery", function ()
     //register interest
     await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 200))
       .revertedWithCustomError(fixt.contractDealInterestDiscovery, "DealInterestDiscovery_TotalAllocationReached");
+  });
+
+  it("mass import", async () =>
+  {
+    const fixt = await fixture();
+
+    //create deal
+    await setupDeal(fixt, {
+      uuid: "D1",
+      interestDiscoveryActive: true,
+      minAllocation: 50,
+      maxAllocation: 200,
+      totalAllocation: 1000,
+      collectedToken: fixt.token.address
+    });
+
+    const interestD1a = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
+    await fixt.contractCommunityMemberNft.connect(fixt.wallet1).mintCommunity(fixt.uuidMainCommunity);
+    await fixt.contractCommunityMemberNft.connect(fixt.wallet2).mintCommunity(fixt.uuidMainCommunity);
+
+    expect(interestD1a.toNumber()).eq(0);
+
+    //register interest
+    await fixt.contractDealInterestDiscovery.importOldDealInterests(
+      "D1",
+      [fixt.wallet1.address, fixt.wallet2.address],
+      [100, 100]
+    );
+
+    const interestD1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
+    expect(interestD1.toNumber()).eq(200);
+
+    const interestD1WO = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet1.address);
+    expect(interestD1WO.toNumber()).eq(100);
+
+    const interestD2WO = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet2.address);
+    expect(interestD2WO.toNumber()).eq(100);
   });
 
 });
