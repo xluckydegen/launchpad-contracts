@@ -45,6 +45,15 @@ describe("App/DealFundraising", function ()
     const etherscontractToken = await factoryToken.deploy("USDC");
     const tokenUSDC = await etherscontractToken.deployed();
 
+    const factoryUsdt = await hre.ethers.getContractFactory('TetherToken');
+    // @todo check numbers
+    const initSupply = 10000n * 10n ** 6n;
+    const name = "Tether USD";
+    const symbol = "USDT";
+    const decimals = 6n;
+    const etherscontractUsdt = await factoryUsdt.deploy(initSupply, name, symbol, decimals);
+    const tokenUSDT = await etherscontractUsdt.deployed();
+
     const roleEditor = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("EDITOR"));
     await contractCommunityManager.grantRole(roleEditor, walletAdmin.address);
     await contractDealManager.grantRole(roleEditor, walletAdmin.address);
@@ -63,10 +72,13 @@ describe("App/DealFundraising", function ()
     await contractCommunityMemberNft.connect(wallet1).mintCommunity(uuidMainCommunity);
     await contractCommunityMemberNft.connect(wallet2).mintCommunity(uuidMainCommunity);
 
+    //fund wallets with usdt
+    await tokenUSDT.connect(walletOwner).transfer(wallet1.address, 1000n * 10n ** 6n);
+
     return {
       contractCommunityManager, contractCommunityMemberNft, contractDealManager,
       contractDealInterestDiscovery, contractDealFundraising,
-      tokenUSDC,
+      tokenUSDC, tokenUSDT,
       uuidMainCommunity,
       walletAdmin,
       walletMember1: wallet1,
@@ -111,10 +123,44 @@ describe("App/DealFundraising", function ()
       ...dealCfg
     });
   }
+  async function setupDealUsdt(fixt: any, dealCfg: {
+    uuid: string,
+    createdAt?: number,
+    updatedAt?: number,
+    interestDiscoveryActive?: boolean,
+    fundraisingActiveForRegistered?: boolean,
+    fundraisingActiveForEveryone?: boolean,
+    refundAllowed?: boolean,
+    minAllocation?: BigNumber,
+    maxAllocation?: BigNumber,
+    totalAllocation?: BigNumber,
+    collectedToken?: string
+  })
+  {
+    //create deal
+    await fixt.contractDealManager.storeDeal({
+      createdAt: 0,
+      updatedAt: 0,
+      interestDiscoveryActive: false,
+      fundraisingActiveForRegistered: false,
+      fundraisingActiveForEveryone: false,
+      refundAllowed: false,
+      minAllocation: 0,
+      maxAllocation: 0,
+      totalAllocation: 0,
+      collectedToken: fixt.tokenUSDT.address,
+      ...dealCfg
+    });
+  }
 
   function ta(amount: number): BigNumber
   {
     return BigNumber.from(amount).mul(10n ** 18n);
+  }
+  
+  function ta6(amount: number): BigNumber
+  {
+    return BigNumber.from(amount).mul(10n ** 6n);
   }
 
   const maxBigInt = BigNumber.from("99999999999999999999999999");
@@ -1027,4 +1073,31 @@ describe("App/DealFundraising", function ()
       .revertedWithCustomError(fixt.contractDealFundraising, "DealFundraising_ZeroAddress");
   });
 
+  it("usdt: setup is correct", async () =>
+  {
+    const fixt = await fixture();
+
+    //check on balances 
+    const userBalanace = await fixt.tokenUSDT.balanceOf(
+      fixt.walletMember1.address
+    );
+    expect(userBalanace).eq(ta6(1000));
+
+    await setupDealUsdt(fixt, {
+      uuid: 'D1',
+      interestDiscoveryActive: true,
+      fundraisingActiveForEveryone: true,
+      minAllocation: ta(50),
+      maxAllocation: ta(200),
+      totalAllocation: ta(1000),
+    });
+
+    // 1: as an owner, set fee to USDT to non-zero
+    await fixt.tokenUSDT.setParams(10, 20);
+    // 2: use simple transfer function and double-check balances that fee has been applied
+    await fixt.tokenUSDT.connect(fixt.walletMember1).transfer(fixt.walletNonMember2.address, ta(100));
+    const balanceAfter = await fixt.tokenUSDT.balanceOf(fixt.walletNonMember2.address);
+    expect(balanceAfter).lessThan(ta(100));
+    // 3: test DealFundraising::purchase() will revert 
+  })
 });

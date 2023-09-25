@@ -25,6 +25,7 @@ error DealFundraising_NothingToRefund();
 error DealFundraising_NothingToWithdraw();
 error DealFundraising_NotEnoughTokens();
 error DealFundraising_ZeroAddress();
+error DealFundraising_AmountsDoNotMatch();
 
 interface IDealFundraising {
     //register interest in specific deal (can be called multiple times)
@@ -92,14 +93,25 @@ contract DealFundraising is IDealFundraising, AccessControl {
             dealUuid,
             amount
         );
-
         //check that msg.sender has enough tokens
         IERC20 token = deal.collectedToken;
         if (token.balanceOf(msg.sender) < amount)
             revert DealFundraising_NotEnoughTokens();
-
+        // check balance before (protection against fee-on-transfer/rebasing tokens)
+        uint256 balanceBefore = token.balanceOf(address(this));
         //transfer tokens
         token.safeTransferFrom(msg.sender, address(this), amount);
+        // check balance after (protection against fee-on-transfer/rebasing tokens)
+        uint256 balanceAfter = token.balanceOf(address(this));
+        // check that amounts match
+        if (balanceAfter - balanceBefore != amount) {
+            // @note if fee-on-transfer/rebasing happened, this will always revert thus the given deal
+            // will be totally unusable. Is this really what we want? Otherwise we would need to call
+            // internalRegisterPurchase() here again(or implement something like updateRegisterPurchase() method).
+            // The formal will make the transaction much more expensive; both will need to have reentrancy protection
+            // implemented!!!
+            revert DealFundraising_AmountsDoNotMatch();
+        }
         emit WalletPurchased(dealUuid, msg.sender, amount);
     }
 
