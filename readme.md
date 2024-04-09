@@ -14,7 +14,7 @@ rm cache -r -fo;rm artifacts -r -fo;rm typechain-types -r -fo; npx hardhat compi
 ## Test contracts
 
 ```
-npx mocha -r ts-node/register test ./test/**/*.test.ts
+npx hardhat test
 ```
 
 ## Links
