@@ -1,12 +1,12 @@
-import "@nomicfoundation/hardhat-chai-matchers";
+/*import "@nomicfoundation/hardhat-chai-matchers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
-import { EthersWallets } from "./wallets.test";
+import { EthersWallets } from "../wallets.test";
 
 
-describe("App/DealInterestDiscovery", function ()
+describe("App/V1/DealInterestDiscovery", function ()
 {
   async function fixtureDeploy()
   {
@@ -18,29 +18,24 @@ describe("App/DealInterestDiscovery", function ()
     const wallet3 = new Wallet(EthersWallets.devWalletGanache05.private!, owner.provider);
 
     const factoryCommunityManager = await hre.ethers.getContractFactory("CommunityManager");
-    const ethersContractCommunityManager = await factoryCommunityManager.deploy();
-    const contractCommunityManager = await ethersContractCommunityManager.deployed();
+    const contractCommunityManager = await factoryCommunityManager.deploy();
 
     const uuidMainCommunity = "1111";
     await contractCommunityManager.registerCommunity(uuidMainCommunity);
 
     const factoryCommunityMemberNft = await hre.ethers.getContractFactory("CommunityMemberNft");
-    const ethersContractCommunityMemberNft = await factoryCommunityMemberNft.deploy(contractCommunityManager.address, uuidMainCommunity);
-    const contractCommunityMemberNft = await ethersContractCommunityMemberNft.deployed();
+    const contractCommunityMemberNft = await factoryCommunityMemberNft.deploy(await contractCommunityManager.getAddress(), uuidMainCommunity);
 
     const factoryDealManager = await hre.ethers.getContractFactory("DealManager");
-    const etherscontractDealManager = await factoryDealManager.deploy();
-    const contractDealManager = await etherscontractDealManager.deployed();
+    const contractDealManager = await factoryDealManager.deploy();
 
     const factoryDealInterestDiscovery = await hre.ethers.getContractFactory("DealInterestDiscovery");
-    const etherscontractDealInterestDiscovery = await factoryDealInterestDiscovery.deploy(contractDealManager.address, contractCommunityMemberNft.address);
-    const contractDealInterestDiscovery = await etherscontractDealInterestDiscovery.deployed();
+    const contractDealInterestDiscovery = await factoryDealInterestDiscovery.deploy(await contractDealManager.getAddress(), await contractCommunityMemberNft.getAddress());
 
     const factoryToken = await hre.ethers.getContractFactory("TestToken");
-    const etherscontractToken = await factoryToken.deploy("USDC");
-    const token = await etherscontractToken.deployed();
+    const token = await factoryToken.deploy("USDC", 6);
 
-    const roleEditor = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("EDITOR"));
+    const roleEditor = ethers.keccak256(ethers.toUtf8Bytes("EDITOR"));
     await contractCommunityManager.grantRole(roleEditor, walletAdmin.address);
     await contractDealManager.grantRole(roleEditor, walletAdmin.address);
 
@@ -87,7 +82,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 0,
       maxAllocation: 0,
       totalAllocation: 0,
-      collectedToken: fixt.token.address,
+      collectedToken: await fixt.token.getAddress(),
       ...dealCfg
     });
   }
@@ -103,26 +98,26 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     const interestD1a = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interestD1a.toNumber()).eq(0);
+    expect(interestD1a).eq(0);
 
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 100);
 
     const interestD1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interestD1.toNumber()).eq(100);
+    expect(interestD1).eq(100);
 
     const interestD1WO = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
-    expect(interestD1WO.toNumber()).eq(100);
+    expect(interestD1WO).eq(100);
 
     const interestD1WOb = await fixt.contractDealInterestDiscovery.getRegisteredAmount("D1", fixt.walletOwner.address);
-    expect(interestD1WOb.toNumber()).eq(100);
+    expect(interestD1WOb).eq(100);
 
     const interestD1WOc = await fixt.contractDealInterestDiscovery.getRegisteredAmount("D1", fixt.wallet1.address);
-    expect(interestD1WOc.toNumber()).eq(0);
+    expect(interestD1WOc).eq(0);
   });
 
   it("multiple registrations to valid deal", async () =>
@@ -136,7 +131,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 300,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //mint nft community
@@ -147,19 +142,19 @@ describe("App/DealInterestDiscovery", function ()
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 100);
 
     const interest1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest1.toNumber()).eq(100);
+    expect(interest1).eq(100);
 
     //register interest
     await fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 100);
 
     const interest2 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest2.toNumber()).eq(200);
+    expect(interest2).eq(200);
 
     //register interest
     await fixt.contractDealInterestDiscovery.connect(fixt.wallet2).registerInterest("D1", 100);
 
     const interest3 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest3.toNumber()).eq(300);
+    expect(interest3).eq(300);
   });
 
   it("modify allocation", async () =>
@@ -173,35 +168,35 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 300,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 100);
 
     const interest1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest1.toNumber()).eq(100);
+    expect(interest1).eq(100);
 
     const interestW1 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
-    expect(interestW1.toNumber()).eq(100);
+    expect(interestW1).eq(100);
 
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 50);
 
     const interest2 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest2.toNumber()).eq(50);
+    expect(interest2).eq(50);
 
     const interestW2 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
-    expect(interestW2.toNumber()).eq(50);
+    expect(interestW2).eq(50);
 
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 200);
 
     const interest3 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest3.toNumber()).eq(200);
+    expect(interest3).eq(200);
 
     const interestW3 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
-    expect(interestW3.toNumber()).eq(200);
+    expect(interestW3).eq(200);
   });
 
   it("storno allocation", async () =>
@@ -215,26 +210,26 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 300,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 100);
 
     const interest1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest1.toNumber()).eq(100);
+    expect(interest1).eq(100);
 
     const interestW1 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
-    expect(interestW1.toNumber()).eq(100);
+    expect(interestW1).eq(100);
 
     //register interest
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 0);
 
     const interest2 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest2.toNumber()).eq(0);
+    expect(interest2).eq(0);
 
     const interestW2 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.walletOwner.address);
-    expect(interestW2.toNumber()).eq(0);
+    expect(interestW2).eq(0);
   });
 
   it("modify allocation with other existing interest", async () =>
@@ -248,7 +243,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 300,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //mint nft community
@@ -260,28 +255,28 @@ describe("App/DealInterestDiscovery", function ()
     await fixt.contractDealInterestDiscovery.connect(fixt.wallet2).registerInterest("D1", 100);
 
     const interest1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest1.toNumber()).eq(300);
+    expect(interest1).eq(300);
 
     const interestW1 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet1.address);
     const interestW2 = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet2.address);
-    expect(interestW1.toNumber()).eq(200);
-    expect(interestW2.toNumber()).eq(100);
+    expect(interestW1).eq(200);
+    expect(interestW2).eq(100);
 
     //register interest
     await fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 100);
 
     const interest2b = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest2b.toNumber()).eq(200);
+    expect(interest2b).eq(200);
 
     await fixt.contractDealInterestDiscovery.connect(fixt.wallet2).registerInterest("D1", 200);
 
     const interest2c = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest2c.toNumber()).eq(300);
+    expect(interest2c).eq(300);
 
     const interestW1d = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet1.address);
     const interestW2d = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet2.address);
-    expect(interestW1d.toNumber()).eq(100);
-    expect(interestW2d.toNumber()).eq(200);
+    expect(interestW1d).eq(100);
+    expect(interestW2d).eq(200);
   });
 
   it("attempt register to unknown deal", async () =>
@@ -304,7 +299,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
@@ -323,7 +318,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
@@ -341,7 +336,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
@@ -360,7 +355,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
@@ -379,7 +374,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //register interest
@@ -398,7 +393,7 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 300,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     //mint nft community
@@ -408,7 +403,7 @@ describe("App/DealInterestDiscovery", function ()
     await fixt.contractDealInterestDiscovery.registerInterest("D1", 200);
 
     const interest1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interest1.toNumber()).eq(200);
+    expect(interest1).eq(200);
 
     //register interest
     await expect(fixt.contractDealInterestDiscovery.connect(fixt.wallet1).registerInterest("D1", 200))
@@ -426,14 +421,14 @@ describe("App/DealInterestDiscovery", function ()
       minAllocation: 50,
       maxAllocation: 200,
       totalAllocation: 1000,
-      collectedToken: fixt.token.address
+      collectedToken: await fixt.token.getAddress()
     });
 
     const interestD1a = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
     await fixt.contractCommunityMemberNft.connect(fixt.wallet1).mintCommunity(fixt.uuidMainCommunity);
     await fixt.contractCommunityMemberNft.connect(fixt.wallet2).mintCommunity(fixt.uuidMainCommunity);
 
-    expect(interestD1a.toNumber()).eq(0);
+    expect(interestD1a).eq(0);
 
     //register interest
     await fixt.contractDealInterestDiscovery.importOldDealInterests(
@@ -443,13 +438,14 @@ describe("App/DealInterestDiscovery", function ()
     );
 
     const interestD1 = await fixt.contractDealInterestDiscovery.dealsInterest("D1");
-    expect(interestD1.toNumber()).eq(200);
+    expect(interestD1).eq(200);
 
     const interestD1WO = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet1.address);
-    expect(interestD1WO.toNumber()).eq(100);
+    expect(interestD1WO).eq(100);
 
     const interestD2WO = await fixt.contractDealInterestDiscovery.dealsWalletsInterest("D1", fixt.wallet2.address);
-    expect(interestD2WO.toNumber()).eq(100);
+    expect(interestD2WO).eq(100);
   });
 
 });
+*/

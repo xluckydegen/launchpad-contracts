@@ -15,8 +15,8 @@ contract TestToken is ERC20, Ownable {
     mapping(address => uint256) public transferLimitedAddresses;
     mapping(address => bool) public transferExcludedAddresses;
 
-    constructor(string memory name) ERC20(name, name) {
-        configuredDecimals = 18;
+    constructor(string memory _name, uint8 _decimals) ERC20(_name, _name) {
+        configuredDecimals = _decimals;
          tokenTotalSupply = 100_000_000 * 10 ** configuredDecimals;
          maxTransferAmount =  tokenTotalSupply;
         _mint(msg.sender, tokenTotalSupply);
@@ -53,7 +53,7 @@ contract TestToken is ERC20, Ownable {
     }
 
     function setMaxTransferAmount(uint256 amount_) public {
-        maxTransferAmount = amount_ * 10 ** 18;
+        maxTransferAmount = amount_ * 10 ** configuredDecimals;
     }
 
     function _transfer(

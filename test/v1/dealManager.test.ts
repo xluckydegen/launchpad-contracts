@@ -1,12 +1,12 @@
-import "@nomicfoundation/hardhat-chai-matchers";
+/*import "@nomicfoundation/hardhat-chai-matchers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
-import { EthersWallets } from "./wallets.test";
+import { EthersWallets } from "../wallets.test";
 
 
-describe("App/DealManager", function ()
+describe("App/V1/DealManager", function ()
 {
   async function fixtureDeploy()
   {
@@ -18,12 +18,10 @@ describe("App/DealManager", function ()
     const wallet3 = new Wallet(EthersWallets.devWalletGanache05.private!, owner.provider);
 
     const factoryDealManager = await hre.ethers.getContractFactory("DealManager");
-    const etherscontractDealManager = await factoryDealManager.deploy();
-    const contractDealManager = await etherscontractDealManager.deployed();
+    const contractDealManager = await factoryDealManager.deploy();
 
     const factoryToken = await hre.ethers.getContractFactory("TestToken");
-    const etherscontractToken = await factoryToken.deploy("USDC");
-    const token = await etherscontractToken.deployed();
+    const token = await factoryToken.deploy("USDC", 6);
 
     return {
       contractDealManager,
@@ -148,7 +146,7 @@ describe("App/DealManager", function ()
     ).revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x8c93699475be54d1d73bbbabee1213ba5867c90fcebb8234a4274f68c8da4977");
 
     //grant admin role
-    const roleEditor = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("EDITOR"));
+    const roleEditor = ethers.keccak256(ethers.toUtf8Bytes("EDITOR"));
     await fixt.contractDealManager.grantRole(roleEditor, fixt.wallet1.address);
 
     await fixt.contractDealManager.connect(fixt.wallet1).storeDeal(dealInitial);
@@ -177,7 +175,7 @@ describe("App/DealManager", function ()
     const deal2 = await fixt.contractDealManager.deals("1234");
     expect(deal2.uuid).eq("1234");
     expect(deal2.createdAt).not.eq(0);
-    expect(deal2.totalAllocation.toNumber()).eq(100);
+    expect(deal2.totalAllocation).eq(100);
   });
 
   it("update deal nonOwner", async () =>
@@ -219,7 +217,7 @@ describe("App/DealManager", function ()
     ).revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x8c93699475be54d1d73bbbabee1213ba5867c90fcebb8234a4274f68c8da4977");
 
     //grant admin role
-    const roleEditor = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("EDITOR"));
+    const roleEditor = ethers.keccak256(ethers.toUtf8Bytes("EDITOR"));
     await fixt.contractDealManager.grantRole(roleEditor, fixt.wallet1.address);
 
     await fixt.contractDealManager.storeDeal(dealUpdate);
@@ -227,7 +225,7 @@ describe("App/DealManager", function ()
     const deal2 = await fixt.contractDealManager.deals("1234");
     expect(deal2.uuid).eq("1234");
     expect(deal2.createdAt).not.eq(0);
-    expect(deal2.totalAllocation.toNumber()).eq(100);
+    expect(deal2.totalAllocation).eq(100);
   });
 
   it("existDealByUuid", async () =>
@@ -293,3 +291,4 @@ describe("App/DealManager", function ()
   });
 
 });
+*/

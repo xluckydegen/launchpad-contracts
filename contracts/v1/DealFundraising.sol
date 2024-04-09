@@ -136,16 +136,19 @@ contract DealFundraising is IDealFundraising, AccessControl {
             !deal.fundraisingActiveForEveryone
         ) revert DealFundraising_FundraisingNotAllowed();
 
+        //get current state and previous amount
+        uint256 previousAmount = dealsWalletsDeposits[dealUuid][recipient];
+        uint256 totalCollected = dealsDeposits[dealUuid];
+
         //if we're in the first round where only registered can ape exact amount
         if (!deal.fundraisingActiveForEveryone) {
             uint256 registeredInterest = dealInterestDiscovery
                 .getRegisteredAmount(dealUuid, recipient);
             if (amount != registeredInterest)
                 revert DealFundraising_OnlyPreregisteredAmountAllowed();
+            if (amount + previousAmount > registeredInterest)
+                revert DealFundraising_OnlyPreregisteredAmountAllowed();
         }
-
-        uint256 previousAmount = dealsWalletsDeposits[dealUuid][recipient];
-        uint256 totalCollected = dealsDeposits[dealUuid];
 
         if (deal.minAllocation > previousAmount + amount)
             revert DealFundraising_MinimumNotMet();

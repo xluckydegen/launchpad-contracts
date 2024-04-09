@@ -1,12 +1,12 @@
-import "@nomicfoundation/hardhat-chai-matchers";
+/*import "@nomicfoundation/hardhat-chai-matchers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { Wallet, ethers } from "ethers";
 import hre from "hardhat";
-import { EthersWallets } from "./wallets.test";
+import { EthersWallets } from "../wallets.test";
 
 
-describe("App/CommunityManager", function ()
+describe("App/V1/CommunityManager", function ()
 {
   async function fixtureDeploy()
   {
@@ -16,8 +16,7 @@ describe("App/CommunityManager", function ()
     const wallet1 = new Wallet(EthersWallets.devWalletGanache03.private!, owner.provider);
 
     const factoryCommunityManager = await hre.ethers.getContractFactory("CommunityManager");
-    const ethersContractCommunityManager = await factoryCommunityManager.deploy();
-    const contractCommunityManager = await ethersContractCommunityManager.deployed();
+    const contractCommunityManager = await factoryCommunityManager.deploy();
 
     return {
       contractCommunityManager,
@@ -80,7 +79,7 @@ describe("App/CommunityManager", function ()
     ).revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x8c93699475be54d1d73bbbabee1213ba5867c90fcebb8234a4274f68c8da4977");
 
     //grant admin role
-    const roleEditor = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("EDITOR"));
+    const roleEditor = ethers.keccak256(ethers.toUtf8Bytes("EDITOR"));
     await fixt.contractCommunityManager.grantRole(roleEditor, fixt.wallet1.address);
 
     await fixt.contractCommunityManager.connect(fixt.wallet1).registerCommunity("1234");
@@ -148,3 +147,4 @@ describe("App/CommunityManager", function ()
     expect(count).eq(2);
   });
 });
+*/

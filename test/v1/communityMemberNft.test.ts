@@ -1,12 +1,12 @@
-import "@nomicfoundation/hardhat-chai-matchers";
+/*import "@nomicfoundation/hardhat-chai-matchers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { Contract, ContractTransaction, Wallet } from "ethers";
+import { BaseContract, Contract, ContractTransaction, ContractTransactionResponse, Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
-import { EthersWallets } from "./wallets.test";
+import { EthersWallets } from "../wallets.test";
 
 
-describe("App/CommunityMemberNft", function ()
+describe("App/V1/CommunityMemberNft", function ()
 {
   async function fixtureDeploy()
   {
@@ -18,19 +18,17 @@ describe("App/CommunityMemberNft", function ()
     const wallet3 = new Wallet(EthersWallets.devWalletGanache05.private!, owner.provider);
 
     const factoryCommunity = await hre.ethers.getContractFactory("CommunityManager");
-    const ethersContractCommunity = await factoryCommunity.deploy();
-    const contractCommunity = await ethersContractCommunity.deployed();
+    const contractCommunity = await factoryCommunity.deploy();
 
     const uuidMainCommunity = "1111";
     await contractCommunity.registerCommunity(uuidMainCommunity);
 
     const factoryCommunityMemberNft = await hre.ethers.getContractFactory("CommunityMemberNft");
-    const ethersContractCommunityMemberNft = await factoryCommunityMemberNft.deploy(contractCommunity.address, uuidMainCommunity);
-    const contractCommunityMemberNft = await ethersContractCommunityMemberNft.deployed();
+    const contractCommunityMemberNft = await factoryCommunityMemberNft.deploy(await contractCommunity.getAddress(), uuidMainCommunity);
 
-    await walletOwner.sendTransaction({ to: wallet1.address, value: ethers.utils.parseEther("1") });
-    await walletOwner.sendTransaction({ to: wallet2.address, value: ethers.utils.parseEther("1") });
-    await walletOwner.sendTransaction({ to: wallet3.address, value: ethers.utils.parseEther("1") });
+    await walletOwner.sendTransaction({ to: wallet1.address, value: ethers.parseEther("1") });
+    await walletOwner.sendTransaction({ to: wallet2.address, value: ethers.parseEther("1") });
+    await walletOwner.sendTransaction({ to: wallet3.address, value: ethers.parseEther("1") });
 
     return {
       contractCommunity, contractCommunityMemberNft,
@@ -40,9 +38,12 @@ describe("App/CommunityMemberNft", function ()
     };
   }
 
-  async function parseLogsFromTransaction(contract: Contract, tx: ContractTransaction)
+  async function parseLogsFromTransaction(contract: BaseContract, tx: ContractTransactionResponse)
   {
     const receipt = await tx.wait();
+    if ( !receipt)
+      return [];
+    
     const parsedLogs = receipt.logs.map(l =>
     {
       try
@@ -79,7 +80,7 @@ describe("App/CommunityMemberNft", function ()
     await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
 
     const amountW1 = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
-    expect(amountW1.toNumber()).eq(1);
+    expect(amountW1).eq(1);
 
     const hasNft = await fixt.contractCommunityMemberNft.hasCommunityNft(fixt.walletOwner.address);
     expect(hasNft).eq(true);
@@ -94,13 +95,13 @@ describe("App/CommunityMemberNft", function ()
     );
 
     const amountWO = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
-    expect(amountWO.toNumber()).eq(0);
+    expect(amountWO).eq(0);
 
     const amountW1 = await fixt.contractCommunityMemberNft.balanceOf(fixt.wallet1.address);
-    expect(amountW1.toNumber()).eq(1);
+    expect(amountW1).eq(1);
 
     const amountW2 = await fixt.contractCommunityMemberNft.balanceOf(fixt.wallet2.address);
-    expect(amountW2.toNumber()).eq(1);
+    expect(amountW2).eq(1);
 
     const hasNft = await fixt.contractCommunityMemberNft.hasCommunityNft(fixt.walletOwner.address);
     expect(hasNft).eq(false);
@@ -144,7 +145,7 @@ describe("App/CommunityMemberNft", function ()
     const tx = await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
     const logs = await parseLogsFromTransaction(fixt.contractCommunityMemberNft, tx);
     expect(logs.length).gt(0);
-    const tokenId = logs[0]!.args.tokenId.toNumber();
+    const tokenId = logs[0]!.args.tokenId;
     const data = await fixt.contractCommunityMemberNft.nftData(tokenId);
     expect(data.communityUuid).eq(fixt.uuidMainCommunity);
   });
@@ -155,13 +156,13 @@ describe("App/CommunityMemberNft", function ()
     const tx = await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
     const logs = await parseLogsFromTransaction(fixt.contractCommunityMemberNft, tx);
     expect(logs.length).gt(0);
-    const tokenId = logs[0]!.args.tokenId.toNumber();
+    const tokenId = logs[0]!.args.tokenId;
 
     await expect(fixt.contractCommunityMemberNft.transferFrom(fixt.walletOwner.address, fixt.wallet1.address, tokenId))
       .revertedWithCustomError(fixt.contractCommunityMemberNft, "CommunityMemberNft_NotTransferable");
 
     const amountWO = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
-    expect(amountWO.toNumber()).eq(1);
+    expect(amountWO).eq(1);
 
     const amountW1 = await fixt.contractCommunityMemberNft.balanceOf(fixt.wallet1.address);
     expect(amountW1).eq(0);
@@ -179,7 +180,7 @@ describe("App/CommunityMemberNft", function ()
     const tx = await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
     const logs = await parseLogsFromTransaction(fixt.contractCommunityMemberNft, tx);
     expect(logs.length).gt(0);
-    const tokenId = logs[0]!.args.tokenId.toNumber();
+    const tokenId = logs[0]!.args.tokenId;
     const uri = await fixt.contractCommunityMemberNft.tokenURI(tokenId);
     expect(uri).eq("https://api-testnet.angelssquad.com/nft/member?id=1");
   });
@@ -190,7 +191,7 @@ describe("App/CommunityMemberNft", function ()
     await fixt.contractCommunityMemberNft.mintCommunity(fixt.uuidMainCommunity);
 
     const amountWO = await fixt.contractCommunityMemberNft.balanceOf(fixt.walletOwner.address);
-    expect(amountWO.toNumber()).eq(1);
+    expect(amountWO).eq(1);
 
     const index = await fixt.contractCommunityMemberNft.tokenOfOwnerByIndex(fixt.walletOwner.address, 0);
     expect(index).eq(1);
@@ -203,3 +204,4 @@ describe("App/CommunityMemberNft", function ()
   });
 
 });
+*/

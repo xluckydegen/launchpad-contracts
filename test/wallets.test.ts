@@ -29,4 +29,24 @@ export class EthersWallets
     public: "0x9Fd287cF03CD4908ecCCb23bcc4C8ddF61CfC33D",
     private: "0x35ccda50bddc9e74fd75cd77f88781efe1a79dcd253cd87de474c66dd78c09b7"
   };
+  
+  static devWalletGanache07 = {
+    public: "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955",
+    private: "0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356"
+  };
+
+  static devWalletGanache08 = {
+    public: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+    private: "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97"
+  };
+
+  static devWalletGanache09 = {
+    public: "0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+    private: "0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6"
+  };
+
+  static devWalletGanache10 = {
+    public: "0xBcd4042DE499D14e55001CcbB24a551F3b954096",
+    private: "0xf214f2b2cd398c806f84e317254e0f0b801d0643303237d97a22a48e01628897"
+  };
 }

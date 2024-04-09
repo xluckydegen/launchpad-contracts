@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./CommunityManager.sol";
 
@@ -41,8 +40,7 @@ contract CommunityMemberNft is
     mapping(uint256 => CommunityMemberNftData) public nftData;
 
     //counter
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIdCounter;
+    uint256 private _tokenIdCounter;
 
     //events
     event MemberNftMinted(string communityUuid, address owner, uint256 tokenId);
@@ -71,15 +69,14 @@ contract CommunityMemberNft is
             revert CommunityMemberNft_OnlyOneMintAllowed();
 
         lastMintedAt = block.timestamp;
-        uint256 tokenId = _tokenIdCounter.current() + 1;
-        _tokenIdCounter.increment();
-        _safeMint(msg.sender, tokenId);
-        nftData[tokenId] = CommunityMemberNftData(
+         _tokenIdCounter += 1;
+        _safeMint(msg.sender, _tokenIdCounter);
+        nftData[_tokenIdCounter] = CommunityMemberNftData(
             communityUuid,
             block.timestamp
         );
 
-        emit MemberNftMinted(communityUuid, msg.sender, tokenId);
+        emit MemberNftMinted(communityUuid, msg.sender, _tokenIdCounter);
     }
 
     function massMintCommunity(
@@ -93,10 +90,9 @@ contract CommunityMemberNft is
         for (uint256 n = 0; n < receivers.length; n++) {
             address receiver = receivers[n];
             if (balanceOf(receiver) != 0) continue;
-            uint256 tokenId = _tokenIdCounter.current() + 1;
-            _tokenIdCounter.increment();
-            _safeMint(receiver, tokenId);
-            nftData[tokenId] = CommunityMemberNftData(
+             _tokenIdCounter += 1;
+            _safeMint(receiver, _tokenIdCounter);
+            nftData[_tokenIdCounter] = CommunityMemberNftData(
                 communityUuid,
                 block.timestamp
             );
@@ -132,6 +128,6 @@ contract CommunityMemberNft is
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "https://api-testnet.angelssquad.com/nft/member?id=";
+        return "https://api.angelssquad.com/nft/member?id=";
     }
 }

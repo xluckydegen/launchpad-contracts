@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
-      "target": "es2021",
-      "module": "nodenext",
-
+    "target": "es2021",
+    "module": "nodenext",
     //"target": "esnext", //"es2021", esnext
     //"module": "esnext", //"commonjs", esnext //'es2015', 'es2020', 'es2022', 'esnext', 'node16', 'nodenext'
     "moduleResolution": "NodeNext",
