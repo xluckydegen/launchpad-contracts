@@ -90,6 +90,18 @@ describe("App/V2/DistributionWalletChange/Errors", function ()
       .withArgs("IWF");
   });
 
+  it("register WalletChange invalid same addrs", async () =>
+  {
+    const fixt = await fixture();
+    const WalletChangeInitial = await getWalletChangeStruct({
+      walletFrom: fixt.wallet1.address,
+      walletTo:fixt.wallet1.address,
+    });
+    await expect(fixt.contractDistributionWalletChange.storeWalletChange(WalletChangeInitial))
+      .revertedWithCustomError(fixt.contractDistributionWalletChange, "DistributionWalletChange_InvalidData")
+      .withArgs("IWFT");
+  });
+
   it("register WalletChange invalid to addr", async () =>
   {
     const fixt = await fixture();

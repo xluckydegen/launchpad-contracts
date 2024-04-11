@@ -144,5 +144,4 @@ describe("App/V2/DistributionWalletChange/Permissions", function ()
       .revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
   });
 
-
 });

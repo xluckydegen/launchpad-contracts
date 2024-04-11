@@ -10,6 +10,23 @@ import "../v2Behaviors/BehaviorEmergencyWithdraw.sol";
 import "hardhat/console.sol";
 import {UD60x18, ud, convert} from "@prb/math/src/UD60x18.sol";
 
+/*
+  https://github.com/PaulRBerg/prb-math
+  PRBMath max 59/60+18dec
+
+  tokensDistributable / tokensTotal * maxUserAmount
+
+  e18  / e18 * e18
+  e1 * e18
+  e18
+
+  tokensDistributable * maxUserAmount / tokensTotal 
+
+  e18 * e18 / e18
+  e36 / e18
+  e18
+  */
+
 using SafeERC20 for IERC20;
 
 error Distribution_InvalidData(string msg);
@@ -68,6 +85,7 @@ contract Distribution is
     IDistributionWalletChange distributionWalletChange;
 
     //data
+    bool public distributionsPaused;
     string[] public distributionsIndexed;
     mapping(string => DistributionData) public distributions;
     mapping(string => mapping(address => uint256)) public walletClaims;
@@ -176,15 +194,18 @@ contract Distribution is
         DistributionData memory distr = distributions[distributionUuid];
         if (distr.createdAt == 0) revert Distribution_DataNotExists();
         if (distr.enabled == false) revert Distribution_Disabled();
+        if (distributionsPaused == true) revert Distribution_Disabled();
 
         UD60x18 udTokensDistributable = convert(distr.tokensDistributable);
         UD60x18 udTokensTotal = convert(distr.tokensTotal);
 
         //(distr.tokensDistributable * dividingPrecision) / distr.tokensTotal;
-        UD60x18 udRatioUnlocked = udTokensDistributable.div(udTokensTotal);
-
         //(maxAmount * ratioUnlocked) / dividingPrecision;
-        UD60x18 udAmountClaimable = udRatioUnlocked.mul(convert(maxAmount));
+        //UD60x18 udRatioUnlocked = udTokensDistributable.div(udTokensTotal);
+        //UD60x18 udAmountClaimable = udRatioUnlocked.mul(convert(maxAmount));
+        UD60x18 udAmountClaimable = udTokensDistributable
+            .mul(convert(maxAmount))
+            .div(udTokensTotal);
 
         uint256 amountClaimable = convert(udAmountClaimable);
         uint256 amountClaimed = walletClaims[distributionUuid][claimingAddress];
@@ -230,6 +251,12 @@ contract Distribution is
             distributionWalletsClaims[distributionUuid].push(wallet);
             walletClaims[distributionUuid][wallet] = amount;
         }
+    }
+
+    function emergencyDistributionsPause(
+        bool _paused
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        distributionsPaused = _paused;
     }
 
     function distributionWalletsClaimsCount(

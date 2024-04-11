@@ -272,4 +272,23 @@ describe("App/V2/Distribution/Permissions", function ()
     await fixt.tokenUSDC.approve(await fixt.contractDistribution.getAddress(), 10_000_000);
     await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 10_000_000);
   });
+
+  it("pause Distribution nonowner", async () =>
+  {
+    const fixt = await fixture();
+    const distributionInitial = await getDistributionStruct({
+      token: await fixt.tokenUSDC.getAddress(),
+      tokensTotal: 10_000_000,
+      tokensDistributable: 10_000_000,
+      merkleRoot: fixt.merkleTree.root,
+      enabled: true,
+    });
+    await fixt.contractDistribution.storeDistribution(distributionInitial);
+
+    await fixt.tokenUSDC.approve(await fixt.contractDistribution.getAddress(), 10_000_000);
+    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 10_000_000);
+
+    await expect(fixt.contractDistribution.connect(fixt.wallet1).emergencyDistributionsPause(true))
+      .revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+  });
 });

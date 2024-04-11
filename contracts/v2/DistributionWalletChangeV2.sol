@@ -57,6 +57,8 @@ contract DistributionWalletChange is
             revert DistributionWalletChange_InvalidData("IWF");
         if (walletChange.walletTo == address(0))
             revert DistributionWalletChange_InvalidData("IWT");
+        if (walletChange.walletFrom == walletChange.walletTo)
+            revert DistributionWalletChange_InvalidData("IWFT");
         if (walletChange.createdAt == 0)
             walletChange.createdAt = block.timestamp;
         walletChange.updatedAt = block.timestamp;
@@ -80,7 +82,9 @@ contract DistributionWalletChange is
         emit WalletChanged(walletChange.walletFrom);
     }
 
-    function removeWalletChange(string memory uuid) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeWalletChange(
+        string memory uuid
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         WalletChangeData memory walletChangeStored = walletChanges[uuid];
         if (walletChangeStored.createdAt == 0)
             revert DistributionWalletChange_DataNotExists();

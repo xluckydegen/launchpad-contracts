@@ -671,4 +671,41 @@ describe("App/V2/Distribution/Basics", function ()
     const balanceWallet2b = await fixt.tokenUSDC2.balanceOf(fixt.wallet1.address);
     expect(balanceWallet2b).eq(fixt.merkleTree.walletAmount1);
   });
+  
+  it("pause Distribution", async () =>
+  {
+    const fixt = await fixture();
+    const distributionInitial = await getDistributionStruct({
+      token: await fixt.tokenUSDC1.getAddress(),
+      tokensTotal: 10_000_000,
+      tokensDistributable: 10_000_000,
+      merkleRoot: fixt.merkleTree.root,
+      enabled: true,
+    });
+    await fixt.contractDistribution.storeDistribution(distributionInitial);
+
+    await fixt.tokenUSDC1.approve(await fixt.contractDistribution.getAddress(), 10_000_000);
+    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 10_000_000);
+
+    await fixt.contractDistribution.emergencyDistributionsPause(true);
+
+    await expect(fixt.contractDistribution.connect(fixt.wallet1).claim(
+      distributionInitial.uuid,
+      fixt.merkleTree.walletAmount1,
+      fixt.merkleTree.walletProof1
+    ))
+    .revertedWithCustomError(fixt.contractDistribution, "Distribution_Disabled");
+
+    await fixt.contractDistribution.emergencyDistributionsPause(false);
+
+    await fixt.contractDistribution.connect(fixt.wallet1).claim(
+      distributionInitial.uuid,
+      fixt.merkleTree.walletAmount1,
+      fixt.merkleTree.walletProof1
+    );
+
+    const alreadyClaimedAfter = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
+    expect(alreadyClaimedAfter).eq(fixt.merkleTree.walletAmount1);
+  });
+
 });
