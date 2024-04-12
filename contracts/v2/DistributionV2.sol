@@ -42,8 +42,8 @@ struct DistributionData {
     uint createdAt;
     uint updatedAt;
     IERC20 token;
-    uint256 tokensTotal;
-    uint256 tokensDistributable;
+    uint256 tokensTotal; // max amount of tokens
+    uint256 tokensDistributable; // amount of tokens being currently distributed
     bytes32 merkleRoot;
     bool enabled;
 }
@@ -79,6 +79,13 @@ contract Distribution is
     AccessControl,
     BehaviorEmergencyWithdraw
 {
+    // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗     
+    // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║     
+    // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║     
+    // ██║╚██╔╝██║██║   ██║██║   ██║██║╚██╗██║██╔══██║██║██║     ██║     
+    // ██║ ╚═╝ ██║╚██████╔╝╚██████╔╝██║ ╚████║██║  ██║██║███████╗███████╗
+    // ╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝
+                                                                  
     //last update
     uint256 public lastChangeAt;
 
@@ -153,7 +160,7 @@ contract Distribution is
         if (distributionStored.createdAt == 0)
             revert Distribution_DataNotExists();
 
-        uint256 alreadyDeposited = distributionDeposited[distributionUuid];
+        uint256 alreadyDeposited = distributionDeposited[distributionUuid]; 
         if (
             distributionStored.tokensDistributable <
             alreadyDeposited + depositAmount
@@ -163,18 +170,22 @@ contract Distribution is
         if (token.balanceOf(msg.sender) < depositAmount)
             revert Distribution_NotEnoughTokens();
 
-        //transfer tokens
-        token.safeTransferFrom(msg.sender, address(this), depositAmount);
-        emit DistributionDeposited(distributionUuid, depositAmount);
-
         //store deposited amount
         distributionDeposited[distributionUuid] += depositAmount;
         distributionLastChangeAt[distributionUuid] = block.timestamp;
         lastChangeAt = block.timestamp;
+
+        //transfer tokens
+        token.safeTransferFrom(msg.sender, address(this), depositAmount);
+
+        emit DistributionDeposited(distributionUuid, depositAmount);
     }
 
     //claiming multiple distributions in one tx
     function claimMultiple(DistributionClaimParams[] memory claims) public {
+        // NOTE:
+        // if multiple claims and the first one fails, following claims never go through; is that okay?
+        // -> if not, use try/catch?
         for (uint claimNo = 0; claimNo < claims.length; claimNo++)
             claim(
                 claims[claimNo].distributionUuid,
@@ -183,7 +194,11 @@ contract Distribution is
             );
     }
 
-    //distribution claming
+    /**
+     * @title claim tokens from a distribution
+     * @dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
+     * (5) update storage, (6) transfer
+     */
     function claim(
         string memory distributionUuid,
         uint256 maxAmount,
@@ -192,17 +207,22 @@ contract Distribution is
         address claimingAddress = distributionWalletChange
             .translateAddressToSourceAddress(msg.sender);
         DistributionData memory distr = distributions[distributionUuid];
+        
+        //DISTRIBUTION DATA VALIDATION
         if (distr.createdAt == 0) revert Distribution_DataNotExists();
         if (distr.enabled == false) revert Distribution_Disabled();
         if (distributionsPaused == true) revert Distribution_Disabled();
 
+        //MERKLE VALIDATION
+        bytes32 leaf = keccak256(
+            bytes.concat(keccak256(abi.encode(claimingAddress, maxAmount)))
+        );
+        if (!MerkleProof.verify(proof, distr.merkleRoot, leaf))
+            revert Distribution_InvalidMerkleProof();
+
+        //CALCULATIONS AND CALCULATIONS VALIDATION
         UD60x18 udTokensDistributable = convert(distr.tokensDistributable);
         UD60x18 udTokensTotal = convert(distr.tokensTotal);
-
-        //(distr.tokensDistributable * dividingPrecision) / distr.tokensTotal;
-        //(maxAmount * ratioUnlocked) / dividingPrecision;
-        //UD60x18 udRatioUnlocked = udTokensDistributable.div(udTokensTotal);
-        //UD60x18 udAmountClaimable = udRatioUnlocked.mul(convert(maxAmount));
         UD60x18 udAmountClaimable = udTokensDistributable
             .mul(convert(maxAmount))
             .div(udTokensTotal);
@@ -212,23 +232,20 @@ contract Distribution is
 
         if (amountClaimed >= amountClaimable)
             revert Distribution_NothingToClaim();
-
-        bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(claimingAddress, maxAmount)))
-        );
-        if (!MerkleProof.verify(proof, distr.merkleRoot, leaf))
-            revert Distribution_InvalidMerkleProof();
-
+        
         uint256 amountToClaim = amountClaimable - amountClaimed;
 
+        IERC20 token = distr.token;
+        if (token.balanceOf(address(this)) < amountToClaim)
+            revert Distribution_NotEnoughTokens();
+
+        // UPDATE STORAGE
         lastChangeAt = block.timestamp;
         distributionLastChangeAt[distributionUuid] = block.timestamp;
         distributionWalletsClaims[distributionUuid].push(claimingAddress);
         walletClaims[distributionUuid][claimingAddress] += amountToClaim;
 
-        IERC20 token = distr.token;
-        if (token.balanceOf(address(this)) < amountToClaim)
-            revert Distribution_NotEnoughTokens();
+        // TRANSFER
         token.safeTransfer(msg.sender, amountToClaim);
 
         emit DistributionClaimed(
