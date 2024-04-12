@@ -51,7 +51,7 @@ contract DistributionWalletChange is
     function storeWalletChange(
         WalletChangeData memory walletChange
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // NOTE neither signature nor message are being checked 
+        // NOTE neither signature nor message are being checked
         if (bytes(walletChange.uuid).length == 0)
             revert DistributionWalletChange_InvalidData("IWU"); // Invalid Wallet Uuid
         if (walletChange.walletFrom == address(0))
@@ -70,11 +70,11 @@ contract DistributionWalletChange is
         if (
             walletChangeStored.createdAt != 0 &&
             walletChangeStored.deletedAt == 0
-        ) revert DistributionWalletChange_DataAlreadyExists("UUID"); // why UUID?
+        ) revert DistributionWalletChange_DataAlreadyExists("DAE"); // Data already exists
         if (walletChangesFromTo[walletChange.walletFrom] != address(0))
-            revert DistributionWalletChange_DataAlreadyExists("DWF"); // DWF?
+            revert DistributionWalletChange_DataAlreadyExists("DWF"); // Wallet from already exists in map
         if (walletChangesToFrom[walletChange.walletTo] != address(0))
-            revert DistributionWalletChange_DataAlreadyExists("DWT"); // DWT?
+            revert DistributionWalletChange_DataAlreadyExists("DWT"); // Wallet to already exists in map
 
         walletChanges[walletChange.uuid] = walletChange;
         walletChangesFromTo[walletChange.walletFrom] = walletChange.walletTo;
