@@ -38,11 +38,11 @@ contract DistributionWalletChange is
 {
     //data
     mapping(string => WalletChangeData) public walletChanges;
-    mapping(address => address) public walletChangesFromTo;
-    mapping(address => address) public walletChangesToFrom;
+    mapping(address => address) public walletChangesFromTo; // former old address (the original one, now invalid)
+    mapping(address => address) public walletChangesToFrom; // new address to redirect funds to
 
     //events
-    event WalletChanged(address wallet);
+    event WalletChanged(address wallet); // change to event WalletChanged(address from, address to) to improve readability?
 
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -51,14 +51,15 @@ contract DistributionWalletChange is
     function storeWalletChange(
         WalletChangeData memory walletChange
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // NOTE neither signature nor message are being checked 
         if (bytes(walletChange.uuid).length == 0)
-            revert DistributionWalletChange_InvalidData("IWU");
+            revert DistributionWalletChange_InvalidData("IWU"); // Invalid Wallet Uuid
         if (walletChange.walletFrom == address(0))
-            revert DistributionWalletChange_InvalidData("IWF");
+            revert DistributionWalletChange_InvalidData("IWF"); // Invalid Wallet From
         if (walletChange.walletTo == address(0))
-            revert DistributionWalletChange_InvalidData("IWT");
+            revert DistributionWalletChange_InvalidData("IWT"); // Invalid Wallet To
         if (walletChange.walletFrom == walletChange.walletTo)
-            revert DistributionWalletChange_InvalidData("IWFT");
+            revert DistributionWalletChange_InvalidData("IWFT"); // Invalid Wallet From and To
         if (walletChange.createdAt == 0)
             walletChange.createdAt = block.timestamp;
         walletChange.updatedAt = block.timestamp;
@@ -69,11 +70,11 @@ contract DistributionWalletChange is
         if (
             walletChangeStored.createdAt != 0 &&
             walletChangeStored.deletedAt == 0
-        ) revert DistributionWalletChange_DataAlreadyExists("UUID");
+        ) revert DistributionWalletChange_DataAlreadyExists("UUID"); // why UUID?
         if (walletChangesFromTo[walletChange.walletFrom] != address(0))
-            revert DistributionWalletChange_DataAlreadyExists("DWF");
+            revert DistributionWalletChange_DataAlreadyExists("DWF"); // DWF?
         if (walletChangesToFrom[walletChange.walletTo] != address(0))
-            revert DistributionWalletChange_DataAlreadyExists("DWT");
+            revert DistributionWalletChange_DataAlreadyExists("DWT"); // DWT?
 
         walletChanges[walletChange.uuid] = walletChange;
         walletChangesFromTo[walletChange.walletFrom] = walletChange.walletTo;
@@ -102,7 +103,7 @@ contract DistributionWalletChange is
     function translateAddressToSourceAddress(
         address wallet
     ) external view returns (address) {
-        //if input address is already redireted address, disable next run
+        //if input address is already redirected address, disable the next run
         if (walletChangesFromTo[wallet] != address(0))
             revert DistributionWalletChange_AddressAlreadyRedirected();
 
