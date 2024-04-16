@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./DistributionWalletChangeV2.sol";
 import "../v2Behaviors/BehaviorEmergencyWithdraw.sol";
-import "hardhat/console.sol";
-import {UD60x18, ud, convert} from "@prb/math/src/UD60x18.sol";
+// import "hardhat/console.sol";
+import { UD60x18, ud, convert } from "@prb/math/src/UD60x18.sol";
 
 /*
   https://github.com/PaulRBerg/prb-math
@@ -62,30 +62,19 @@ struct DistributionImportRecord {
 interface IDistribution {
     function storeDistribution(DistributionData memory distribution) external;
 
-    function depositTokensToDistribution(
-        string memory distributionUuid,
-        uint256 depositAmount
-    ) external;
+    function depositTokensToDistribution(string memory distributionUuid, uint256 depositAmount) external;
 
-    function claim(
-        string memory distributionUuid,
-        uint256 maxAmount,
-        bytes32[] calldata _proof
-    ) external;
+    function claim(string memory distributionUuid, uint256 maxAmount, bytes32[] calldata _proof) external;
 }
 
-contract Distribution is
-    IDistribution,
-    AccessControl,
-    BehaviorEmergencyWithdraw
-{
-    // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗     
-    // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║     
-    // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║     
-    // ██║╚██╔╝██║██║   ██║██║   ██║██║╚██╗██║██╔══██║██║██║     ██║     
+contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw {
+    // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗
+    // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║
+    // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║
+    // ██║╚██╔╝██║██║   ██║██║   ██║██║╚██╗██║██╔══██║██║██║     ██║
     // ██║ ╚═╝ ██║╚██████╔╝╚██████╔╝██║ ╚████║██║  ██║██║███████╗███████╗
     // ╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝
-                                                                  
+
     //last update
     uint256 public lastChangeAt;
 
@@ -114,33 +103,21 @@ contract Distribution is
     }
 
     //register distribution (can be called multiple times)
-    function storeDistribution(
-        DistributionData memory distribution
-    ) public override onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (bytes(distribution.uuid).length == 0)
-            revert Distribution_InvalidData("DU");
-        if (address(distribution.token) == address(0))
-            revert Distribution_InvalidData("DT");
-        if (distribution.merkleRoot.length == 0)
-            revert Distribution_InvalidData("DM");
-        if (distribution.tokensTotal == 0)
-            revert Distribution_InvalidData("DTC");
-        if (distribution.tokensTotal < distribution.tokensDistributable)
-            revert Distribution_InvalidData("TT_TD");
+    function storeDistribution(DistributionData memory distribution) public override onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (bytes(distribution.uuid).length == 0) revert Distribution_InvalidData("DU");
+        if (address(distribution.token) == address(0)) revert Distribution_InvalidData("DT");
+        if (distribution.merkleRoot.length == 0) revert Distribution_InvalidData("DM");
+        if (distribution.tokensTotal == 0) revert Distribution_InvalidData("DTC");
+        if (distribution.tokensTotal < distribution.tokensDistributable) revert Distribution_InvalidData("TT_TD");
 
         uint256 alreadyDeposited = distributionDeposited[distribution.uuid];
-        if (distribution.tokensDistributable < alreadyDeposited)
-            revert Distribution_InvalidData("TD_AD");
+        if (distribution.tokensDistributable < alreadyDeposited) revert Distribution_InvalidData("TD_AD");
 
         distribution.updatedAt = block.timestamp;
-        if (distribution.createdAt == 0)
-            distribution.createdAt = block.timestamp;
+        if (distribution.createdAt == 0) distribution.createdAt = block.timestamp;
 
-        DistributionData memory distributionStored = distributions[
-            distribution.uuid
-        ];
-        if (distributionStored.createdAt == 0)
-            distributionsIndexed.push(distribution.uuid);
+        DistributionData memory distributionStored = distributions[distribution.uuid];
+        if (distributionStored.createdAt == 0) distributionsIndexed.push(distribution.uuid);
         distributions[distribution.uuid] = distribution;
 
         emit DistributionStored(distribution.uuid);
@@ -154,21 +131,15 @@ contract Distribution is
         string memory distributionUuid,
         uint256 depositAmount
     ) external override onlyRole(DISTRIBUTOR_ROLE) {
-        DistributionData memory distributionStored = distributions[
-            distributionUuid
-        ];
-        if (distributionStored.createdAt == 0)
-            revert Distribution_DataNotExists();
+        DistributionData memory distributionStored = distributions[distributionUuid];
+        if (distributionStored.createdAt == 0) revert Distribution_DataNotExists();
 
-        uint256 alreadyDeposited = distributionDeposited[distributionUuid]; 
-        if (
-            distributionStored.tokensDistributable <
-            alreadyDeposited + depositAmount
-        ) revert Distribution_InvalidParams("TB_TD");
+        uint256 alreadyDeposited = distributionDeposited[distributionUuid];
+        if (distributionStored.tokensDistributable < alreadyDeposited + depositAmount)
+            revert Distribution_InvalidParams("TB_TD");
 
         IERC20 token = distributionStored.token;
-        if (token.balanceOf(msg.sender) < depositAmount)
-            revert Distribution_NotEnoughTokens();
+        if (token.balanceOf(msg.sender) < depositAmount) revert Distribution_NotEnoughTokens();
 
         //store deposited amount
         distributionDeposited[distributionUuid] += depositAmount;
@@ -187,57 +158,39 @@ contract Distribution is
         // if multiple claims and the first one fails, following claims never go through; is that okay?
         // -> if not, use try/catch?
         for (uint claimNo = 0; claimNo < claims.length; claimNo++)
-            claim(
-                claims[claimNo].distributionUuid,
-                claims[claimNo].maxAmount,
-                claims[claimNo].proof
-            );
+            claim(claims[claimNo].distributionUuid, claims[claimNo].maxAmount, claims[claimNo].proof);
     }
 
-    /**
-     * @title claim tokens from a distribution
-     * @dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
-     * (5) update storage, (6) transfer
-     */
-    function claim(
-        string memory distributionUuid,
-        uint256 maxAmount,
-        bytes32[] memory proof
-    ) public {
-        address claimingAddress = distributionWalletChange
-            .translateAddressToSourceAddress(msg.sender);
+    //@title claim tokens from a distribution
+    //@dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
+    //(5) update storage, (6) transfer
+    function claim(string memory distributionUuid, uint256 maxAmount, bytes32[] memory proof) public {
+        address claimingAddress = distributionWalletChange.translateAddressToSourceAddress(msg.sender);
         DistributionData memory distr = distributions[distributionUuid];
-        
+
         //DISTRIBUTION DATA VALIDATION
         if (distr.createdAt == 0) revert Distribution_DataNotExists();
         if (distr.enabled == false) revert Distribution_Disabled();
         if (distributionsPaused == true) revert Distribution_Disabled();
 
         //MERKLE VALIDATION
-        bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(claimingAddress, maxAmount)))
-        );
-        if (!MerkleProof.verify(proof, distr.merkleRoot, leaf))
-            revert Distribution_InvalidMerkleProof();
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(claimingAddress, maxAmount))));
+        if (!MerkleProof.verify(proof, distr.merkleRoot, leaf)) revert Distribution_InvalidMerkleProof();
 
         //CALCULATIONS AND CALCULATIONS VALIDATION
         UD60x18 udTokensDistributable = convert(distr.tokensDistributable);
         UD60x18 udTokensTotal = convert(distr.tokensTotal);
-        UD60x18 udAmountClaimable = udTokensDistributable
-            .mul(convert(maxAmount))
-            .div(udTokensTotal);
+        UD60x18 udAmountClaimable = udTokensDistributable.mul(convert(maxAmount)).div(udTokensTotal);
 
         uint256 amountClaimable = convert(udAmountClaimable);
         uint256 amountClaimed = walletClaims[distributionUuid][claimingAddress];
 
-        if (amountClaimed >= amountClaimable)
-            revert Distribution_NothingToClaim();
-        
+        if (amountClaimed >= amountClaimable) revert Distribution_NothingToClaim();
+
         uint256 amountToClaim = amountClaimable - amountClaimed;
 
         IERC20 token = distr.token;
-        if (token.balanceOf(address(this)) < amountToClaim)
-            revert Distribution_NotEnoughTokens();
+        if (token.balanceOf(address(this)) < amountToClaim) revert Distribution_NotEnoughTokens();
 
         // UPDATE STORAGE
         lastChangeAt = block.timestamp;
@@ -248,11 +201,7 @@ contract Distribution is
         // TRANSFER
         token.safeTransfer(msg.sender, amountToClaim);
 
-        emit DistributionClaimed(
-            distributionUuid,
-            claimingAddress,
-            amountToClaim
-        );
+        emit DistributionClaimed(distributionUuid, claimingAddress, amountToClaim);
     }
 
     function emergencyImportClaims(
@@ -270,15 +219,11 @@ contract Distribution is
         }
     }
 
-    function emergencyDistributionsPause(
-        bool _paused
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function emergencyDistributionsPause(bool _paused) external onlyRole(DEFAULT_ADMIN_ROLE) {
         distributionsPaused = _paused;
     }
 
-    function distributionWalletsClaimsCount(
-        string memory distributionUuid
-    ) external view returns (uint256) {
+    function distributionWalletsClaimsCount(string memory distributionUuid) external view returns (uint256) {
         return distributionWalletsClaims[distributionUuid].length;
     }
 
