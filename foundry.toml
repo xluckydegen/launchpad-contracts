@@ -1,13 +1,15 @@
 [profile.default]
-src = "src"
-out = "artifacts"
-libs = ["node_modules"]
+src = "contracts"
+out = "artifactsFoundry"
+libs = ["node_modules", "lib"]
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "@prb/=node_modules/@prb/",
     "eth-gas-reporter/=node_modules/eth-gas-reporter/",
     "hardhat-deploy/=node_modules/hardhat-deploy/",
     "hardhat/=node_modules/hardhat/",
+    "forge-std/=lib/forge-std/src/",
+    "murky/=lib/murky/src/"
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
