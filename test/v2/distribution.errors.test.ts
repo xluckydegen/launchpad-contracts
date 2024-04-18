@@ -282,11 +282,20 @@ describe("App/V2/Distribution/Errors", function ()
     await fixt.contractDistribution.storeDistribution(distributionInitial);
     await fixt.tokenUSDC.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
     await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
+    const deposited = await fixt.contractDistribution.distributionDeposited(distributionInitial.uuid);
+    expect(deposited).eq(5_000_000);
+
     await fixt.contractDistribution.connect(fixt.wallet1).claim(
       distributionInitial.uuid,
       fixt.merkleTree.walletAmount1,
       fixt.merkleTree.walletProof1
     );
+
+    const alreadyClaimed = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
+    expect(alreadyClaimed).eq(500_000);
+
+    const claimed = await fixt.contractDistribution.distributionClaimed(distributionInitial.uuid);
+    expect(claimed).eq(500_000);
 
     distributionInitial.merkleRoot = fixt.merkleTree.root.slice(0, -4) + "cccc";
 

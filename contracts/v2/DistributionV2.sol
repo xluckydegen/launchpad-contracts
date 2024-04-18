@@ -159,6 +159,7 @@ contract Distribution is
             distributionClaimed[distribution.uuid] > 0 &&
             distributionStored.merkleRoot != distribution.merkleRoot
         ) revert Distribution_InvalidData("RMC"); //Trying to change merkle tree after claims were made
+        
         if (distributionStored.createdAt == 0)
             distributionsIndexed.push(distribution.uuid);
         distributions[distribution.uuid] = distribution;
@@ -262,6 +263,7 @@ contract Distribution is
         // UPDATE STORAGE
         lastChangeAt = block.timestamp;
         distributionLastChangeAt[distributionUuid] = block.timestamp;
+        distributionClaimed[distributionUuid] += amountToClaim;
         distributionWalletsClaims[distributionUuid].push(claimingAddress);
         walletClaims[distributionUuid][claimingAddress] += amountToClaim;
 
