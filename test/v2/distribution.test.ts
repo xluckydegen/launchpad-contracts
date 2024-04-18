@@ -727,7 +727,7 @@ describe("App/V2/Distribution/Basics", function ()
     await fixt.contractDistribution.storeDistribution(distributionInitial);
 
     const distrRead2 = await fixt.contractDistribution.distributions(distributionInitial.uuid);
-    expect(distrRead2.token).eq(await fixt.tokenUSDC1.getAddress());
+    expect(distrRead2.token).eq("0xDBE4a2044426Fbfeb8939743fA0A679ba0d4b2F1");
   });
 
   it("change Distribution changeMerkle before claim", async () =>
