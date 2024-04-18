@@ -10,7 +10,7 @@ import { EthersWallets } from "../wallets.test";
 describe("App/V2/Distribution/Basics", function ()
 {
   this.slow(100_000);
-  
+
   async function fixtureDeploy()
   {
     const [owner] = await hre.ethers.getSigners();
@@ -671,7 +671,7 @@ describe("App/V2/Distribution/Basics", function ()
     const balanceWallet2b = await fixt.tokenUSDC2.balanceOf(fixt.wallet1.address);
     expect(balanceWallet2b).eq(fixt.merkleTree.walletAmount1);
   });
-  
+
   it("pause Distribution", async () =>
   {
     const fixt = await fixture();
@@ -694,7 +694,7 @@ describe("App/V2/Distribution/Basics", function ()
       fixt.merkleTree.walletAmount1,
       fixt.merkleTree.walletProof1
     ))
-    .revertedWithCustomError(fixt.contractDistribution, "Distribution_Disabled");
+      .revertedWithCustomError(fixt.contractDistribution, "Distribution_Disabled");
 
     await fixt.contractDistribution.emergencyDistributionsPause(false);
 
@@ -706,6 +706,24 @@ describe("App/V2/Distribution/Basics", function ()
 
     const alreadyClaimedAfter = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
     expect(alreadyClaimedAfter).eq(fixt.merkleTree.walletAmount1);
+  });
+
+  it("change Distribution changeToken before deposit", async () =>
+  {
+    const fixt = await fixture();
+    const distributionInitial = await getDistributionStruct({
+      token: await fixt.tokenUSDC1.getAddress(),
+      tokensTotal: 10_000_000,
+      tokensDistributable: 5_000_000,
+      merkleRoot: fixt.merkleTree.root,
+      enabled: true,
+    });
+    await fixt.contractDistribution.storeDistribution(distributionInitial);
+    distributionInitial.token = "0xdbe4a2044426fbfeb8939743fa0a679ba0d4b2f1";
+    fixt.contractDistribution.storeDistribution(distributionInitial);
+
+    const distrRead = await fixt.contractDistribution.distributions(distributionInitial.uuid);
+    expect(distrRead.token).eq("0xdbe4a2044426fbfeb8939743fa0a679ba0d4b2f1");
   });
 
 });

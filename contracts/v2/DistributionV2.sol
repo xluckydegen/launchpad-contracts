@@ -59,6 +59,14 @@ struct DistributionImportRecord {
     uint256 claimedAmount;
 }
 
+struct DistributionState {
+    string uuid;
+    uint256 lastChangedAt;
+    uint256 deposited;
+    uint256 claimed;
+    uint256 claimsCount;
+}
+
 interface IDistribution {
     function storeDistribution(DistributionData memory distribution) external;
 
@@ -79,13 +87,13 @@ contract Distribution is
     AccessControl,
     BehaviorEmergencyWithdraw
 {
-    // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗     
-    // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║     
-    // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║     
-    // ██║╚██╔╝██║██║   ██║██║   ██║██║╚██╗██║██╔══██║██║██║     ██║     
+    // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗
+    // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║
+    // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║
+    // ██║╚██╔╝██║██║   ██║██║   ██║██║╚██╗██║██╔══██║██║██║     ██║
     // ██║ ╚═╝ ██║╚██████╔╝╚██████╔╝██║ ╚████║██║  ██║██║███████╗███████╗
     // ╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝
-                                                                  
+
     //last update
     uint256 public lastChangeAt;
 
@@ -98,6 +106,7 @@ contract Distribution is
     mapping(string => mapping(address => uint256)) public walletClaims;
     mapping(string => address[]) public distributionWalletsClaims; //can be multiple times!
     mapping(string => uint256) public distributionDeposited;
+    mapping(string => uint256) public distributionClaimed;
     mapping(string => uint256) public distributionLastChangeAt;
 
     //events
@@ -118,19 +127,19 @@ contract Distribution is
         DistributionData memory distribution
     ) public override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (bytes(distribution.uuid).length == 0)
-            revert Distribution_InvalidData("DU");
+            revert Distribution_InvalidData("DU"); //Invalid uuid (missing)
         if (address(distribution.token) == address(0))
-            revert Distribution_InvalidData("DT");
+            revert Distribution_InvalidData("DT"); //Invalid token (null address)
         if (distribution.merkleRoot.length == 0)
-            revert Distribution_InvalidData("DM");
+            revert Distribution_InvalidData("DM"); //Invalid merkle tree (empty)
         if (distribution.tokensTotal == 0)
-            revert Distribution_InvalidData("DTC");
+            revert Distribution_InvalidData("DTC"); //Invalid total tokens (cant be zero)
         if (distribution.tokensTotal < distribution.tokensDistributable)
-            revert Distribution_InvalidData("TT_TD");
+            revert Distribution_InvalidData("TT_TD"); //Distributable tokens larger than total tokens
 
         uint256 alreadyDeposited = distributionDeposited[distribution.uuid];
         if (distribution.tokensDistributable < alreadyDeposited)
-            revert Distribution_InvalidData("TD_AD");
+            revert Distribution_InvalidData("TD_AD"); //Already distributed tokens larger than total tokens
 
         distribution.updatedAt = block.timestamp;
         if (distribution.createdAt == 0)
@@ -139,6 +148,17 @@ contract Distribution is
         DistributionData memory distributionStored = distributions[
             distribution.uuid
         ];
+        if (
+            distributionStored.createdAt != 0 &&
+            distributionDeposited[distribution.uuid] > 0 &&
+            distributionStored.token != distribution.token
+        ) revert Distribution_InvalidData("RTC"); //Trying to change token after deposits were made
+
+        if (
+            distributionStored.createdAt != 0 &&
+            distributionClaimed[distribution.uuid] > 0 &&
+            distributionStored.merkleRoot != distribution.merkleRoot
+        ) revert Distribution_InvalidData("RMC"); //Trying to change merkle tree after claims were made
         if (distributionStored.createdAt == 0)
             distributionsIndexed.push(distribution.uuid);
         distributions[distribution.uuid] = distribution;
@@ -158,17 +178,17 @@ contract Distribution is
             distributionUuid
         ];
         if (distributionStored.createdAt == 0)
-            revert Distribution_DataNotExists();
+            revert Distribution_DataNotExists(); //Depositing to non existing distribution
 
-        uint256 alreadyDeposited = distributionDeposited[distributionUuid]; 
+        uint256 alreadyDeposited = distributionDeposited[distributionUuid];
         if (
             distributionStored.tokensDistributable <
             alreadyDeposited + depositAmount
-        ) revert Distribution_InvalidParams("TB_TD");
+        ) revert Distribution_InvalidParams("TB_TD"); //Depositing more than tokens distributable
 
         IERC20 token = distributionStored.token;
         if (token.balanceOf(msg.sender) < depositAmount)
-            revert Distribution_NotEnoughTokens();
+            revert Distribution_NotEnoughTokens(); //Not enough tokens for deposit
 
         //store deposited amount
         distributionDeposited[distributionUuid] += depositAmount;
@@ -195,7 +215,7 @@ contract Distribution is
     }
 
     /**
-     * @title claim tokens from a distribution
+     * claim tokens from a distribution
      * @dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
      * (5) update storage, (6) transfer
      */
@@ -207,7 +227,7 @@ contract Distribution is
         address claimingAddress = distributionWalletChange
             .translateAddressToSourceAddress(msg.sender);
         DistributionData memory distr = distributions[distributionUuid];
-        
+
         //DISTRIBUTION DATA VALIDATION
         if (distr.createdAt == 0) revert Distribution_DataNotExists();
         if (distr.enabled == false) revert Distribution_Disabled();
@@ -232,7 +252,7 @@ contract Distribution is
 
         if (amountClaimed >= amountClaimable)
             revert Distribution_NothingToClaim();
-        
+
         uint256 amountToClaim = amountClaimable - amountClaimed;
 
         IERC20 token = distr.token;
@@ -284,5 +304,36 @@ contract Distribution is
 
     function distributionsCount() external view returns (uint256) {
         return distributionsIndexed.length;
+    }
+
+    function distributionsArray() external view returns (string[] memory) {
+        return distributionsIndexed;
+    }
+
+    function distributionsStateArray(
+        uint256 changedFrom
+    ) external view returns (DistributionState[] memory) {
+        uint256 records = 0;
+        for (uint ix = 0; ix < distributionsIndexed.length; ix++)
+            if (
+                distributionLastChangeAt[distributionsIndexed[ix]] > changedFrom
+            ) records++;
+
+        DistributionState[] memory result = new DistributionState[](records);
+        if (records == 0) return result;
+
+        records = 0;
+        for (uint ix = 0; ix < distributionsIndexed.length; ix++) {
+            string memory uuid = distributionsIndexed[ix];
+            if (distributionLastChangeAt[uuid] > changedFrom) {
+                result[ix].uuid = uuid;
+                result[ix].lastChangedAt = distributionLastChangeAt[uuid];
+                result[ix].deposited = distributionDeposited[uuid];
+                result[ix].claimed = distributionClaimed[uuid];
+                result[ix].claimsCount = distributionWalletsClaims[uuid].length;
+                records++;
+            }
+        }
+        return result;
     }
 }

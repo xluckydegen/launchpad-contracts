@@ -9,7 +9,7 @@ import { EthersWallets } from "../wallets.test";
 describe("App/V2/Distribution/Errors", function ()
 {
   this.slow(100_000);
-  
+
   async function fixtureDeploy()
   {
     const [owner] = await hre.ethers.getSigners();
@@ -190,7 +190,7 @@ describe("App/V2/Distribution/Errors", function ()
       revertedWithCustomError(fixt.contractDistribution, "Distribution_DataNotExists");
   });
 
-  it("deposit Distribution moreThanDistributable", async () =>
+  it("deposit Distribution moreThanDistributable TB_TD", async () =>
   {
     const fixt = await fixture();
     const distributionInitial = await getDistributionStruct({
@@ -226,7 +226,7 @@ describe("App/V2/Distribution/Errors", function ()
       .revertedWithCustomError(fixt.contractDistribution, "Distribution_NotEnoughTokens");
   });
 
-  it("change Distribution lessThanDeposited", async () =>
+  it("change Distribution lessThanDeposited TD_AD", async () =>
   {
     const fixt = await fixture();
     const distributionInitial = await getDistributionStruct({
@@ -246,6 +246,53 @@ describe("App/V2/Distribution/Errors", function ()
     await expect(fixt.contractDistribution.storeDistribution(distributionInitial))
       .revertedWithCustomError(fixt.contractDistribution, "Distribution_InvalidData")
       .withArgs("TD_AD");
+  });
+
+  it("change Distribution changeToken after deposit RTC", async () =>
+  {
+    const fixt = await fixture();
+    const distributionInitial = await getDistributionStruct({
+      token: await fixt.tokenUSDC.getAddress(),
+      tokensTotal: 10_000_000,
+      tokensDistributable: 5_000_000,
+      merkleRoot: fixt.merkleTree.root,
+      enabled: true,
+    });
+    await fixt.contractDistribution.storeDistribution(distributionInitial);
+    await fixt.tokenUSDC.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
+    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
+
+    distributionInitial.token = "0xdbe4a2044426fbfeb8939743fa0a679ba0d4b2f1";
+
+    await expect(fixt.contractDistribution.storeDistribution(distributionInitial))
+      .revertedWithCustomError(fixt.contractDistribution, "Distribution_InvalidData")
+      .withArgs("RTC");
+  });
+
+  it("change Distribution changeMerkle after claim RMC", async () =>
+  {
+    const fixt = await fixture();
+    const distributionInitial = await getDistributionStruct({
+      token: await fixt.tokenUSDC.getAddress(),
+      tokensTotal: 10_000_000,
+      tokensDistributable: 5_000_000,
+      merkleRoot: fixt.merkleTree.root,
+      enabled: true,
+    });
+    await fixt.contractDistribution.storeDistribution(distributionInitial);
+    await fixt.tokenUSDC.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
+    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
+    await fixt.contractDistribution.connect(fixt.wallet1).claim(
+      distributionInitial.uuid,
+      fixt.merkleTree.walletAmount1,
+      fixt.merkleTree.walletProof1
+    );
+
+    distributionInitial.merkleRoot = fixt.merkleTree.root.slice(0, -4) + "cccc";
+
+    await expect(fixt.contractDistribution.storeDistribution(distributionInitial))
+      .revertedWithCustomError(fixt.contractDistribution, "Distribution_InvalidData")
+      .withArgs("RMC");
   });
 
   it("claim Distribution not enough tokens", async () =>

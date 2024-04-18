@@ -10,7 +10,7 @@ import { EthersWallets } from "../wallets.test";
 describe("App/V2/Distribution/WalletChange", function ()
 {
   this.slow(100_000);
-  
+
   async function fixtureDeploy()
   {
     const [owner] = await hre.ethers.getSigners();
