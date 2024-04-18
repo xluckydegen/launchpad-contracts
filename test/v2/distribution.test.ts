@@ -721,16 +721,16 @@ describe("App/V2/Distribution/Basics", function ()
     await fixt.contractDistribution.storeDistribution(distributionInitial);
 
     const distrRead1 = await fixt.contractDistribution.distributions(distributionInitial.uuid);
-    expect(distrRead1.token).eq("0xBbED9A7433F814AEeDaD9f6Dc060744aC5133E34");
+    expect(distrRead1.token).eq(fixt.tokenUSDC1.getAddress());
 
     distributionInitial.token = "0xdbe4a2044426fbfeb8939743fa0a679ba0d4b2f1";
     await fixt.contractDistribution.storeDistribution(distributionInitial);
 
     const distrRead2 = await fixt.contractDistribution.distributions(distributionInitial.uuid);
-    expect(distrRead2.token).eq("0xDBE4a2044426Fbfeb8939743fA0A679ba0d4b2F1");
+    expect(distrRead2.token).eq(fixt.tokenUSDC1.getAddress());
   });
 
-  it("change Distribution changeMerkle before claim RMC", async () =>
+  it("change Distribution changeMerkle before claim", async () =>
   {
     const fixt = await fixture();
     const distributionInitial = await getDistributionStruct({
