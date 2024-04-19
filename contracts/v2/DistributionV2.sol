@@ -94,6 +94,8 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     event DistributionDeposited(string uuid, uint256 amount);
     event DistributionClaimed(string uuid, address wallet, uint256 amount);
 
+    event Debug(uint256 id, string text);
+
     bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR");
 
     constructor(IDistributionWalletChange _ditributiondistribution) {
@@ -104,11 +106,13 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
 
     //register distribution (can be called multiple times)
     function storeDistribution(DistributionData memory distribution) public override onlyRole(DEFAULT_ADMIN_ROLE) {
+        emit Debug(1, "storeDistribution");
         if (bytes(distribution.uuid).length == 0) revert Distribution_InvalidData("DU");
         if (address(distribution.token) == address(0)) revert Distribution_InvalidData("DT");
         if (distribution.merkleRoot.length == 0) revert Distribution_InvalidData("DM");
         if (distribution.tokensTotal == 0) revert Distribution_InvalidData("DTC");
         if (distribution.tokensTotal < distribution.tokensDistributable) revert Distribution_InvalidData("TT_TD");
+        emit Debug(2, "storeDistribution");
 
         uint256 alreadyDeposited = distributionDeposited[distribution.uuid];
         if (distribution.tokensDistributable < alreadyDeposited) revert Distribution_InvalidData("TD_AD");

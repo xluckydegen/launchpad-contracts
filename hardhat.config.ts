@@ -10,6 +10,29 @@ import "hardhat-preprocessor";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "solidity-coverage";
 
+// The following part is used to instruct hardhat not to compile specific tests
+// mainly because incompability issues with Foundry
+// for more info, see https://github.com/NomicFoundation/hardhat/issues/2306#issuecomment-1184427001
+
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+import { subtask } from "hardhat/config";
+import path from "path";
+
+subtask(
+  TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
+  async (_, { config }, runSuper) => {
+    const paths = await runSuper();
+
+    return paths
+      .filter((solidityFilePath: string) => {
+        const relativePath = path.relative(config.paths.sources, solidityFilePath);
+        
+        // DO NOT COMPILE ECHIDNA TESTS
+        return !relativePath.toLowerCase().includes("echidna");
+      })
+  }
+);
+
 //example project https://github.com/wighawag/template-ethereum-contracts
 
 const config: HardhatUserConfig = {

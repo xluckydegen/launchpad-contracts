@@ -4,8 +4,15 @@ coverage
 coverage.json
 typechain
 typechain-types
+.yarn
+.github
 
 # Hardhat files
 cache
 artifacts
+
+# Foundry files
+lib
+out
+
 
