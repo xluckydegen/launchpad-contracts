@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "./BehaviorEmergencyWithdraw.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { BehaviorEmergencyWithdraw } from "./BehaviorEmergencyWithdraw.sol";
 
 contract TestEmergencyWithdraw is AccessControl, BehaviorEmergencyWithdraw {
+    event ReceivedEth(uint256 amount);
 
-   event ReceivedEth(uint256 amount);
-   
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }

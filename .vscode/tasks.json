@@ -4,6 +4,12 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Echidna",
+      "type": "shell",
+      "command": "docker run -it --rm -v $PWD:/src trailofbits/eth-security-toolbox",
+      "group": "build"
+    },
+    {
       "label": "Compile contracts",
       "type": "shell",
       "command": "npx hardhat compile",

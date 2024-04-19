@@ -29,9 +29,11 @@
   "xmochaExplorer.timeout": 40000,
   "xmochaExplorer.esmLoader": false,
   "xmochaExplorer.monkeyPatch": false,
+  "editor.formatOnSave": true, 
   "[solidity]": {
     "editor.defaultFormatter": "NomicFoundation.hardhat-solidity",
   },
+  // "solidity.formatter": "forge",
   "search.exclude": {
     "**/artifacts": true,
     "**/deployments": true,

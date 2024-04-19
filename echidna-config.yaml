@@ -1,0 +1,10 @@
+testMode: "assertion"
+
+cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=/src/contracts/ @openzeppelin/=/src/node_modules/@openzeppelin/ @prb=/src/node_modules/@prb"]
+
+corpusDir: echidna-corpus
+
+allContracts: true
+allowFFI: true
+
+codeSize: 0xffffffffff
