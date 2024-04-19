@@ -5,7 +5,7 @@ Be sure you have foundry installed (if not, follow instructions [here](https://b
 ```
 yarn install
 foundryup
-foundry install
+forge install
 ```
 
 ## Rebuild contracts
