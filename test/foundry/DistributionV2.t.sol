@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { CheatCodes } from "./Interface.sol";
 import { Distribution, DistributionData } from "contracts/v2/DistributionV2.sol";
 import { DistributionWalletChange } from "contracts/v2/DistributionWalletChangeV2.sol";
-import { TestToken } from "contracts/TestToken.sol";
+import { MockERC20 } from "contracts/echidna/MockERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /// TODO need to be implemented
@@ -22,8 +22,7 @@ contract DistributionTest is Test {
     address USER_03;
     address USER_04;
 
-    TestToken tokenUSDC;
-    TestToken tokenUSDC2;
+    MockERC20 tokenUSDC;
 
     function setUp() public {
         distributionWalletChange = new DistributionWalletChange();
@@ -36,7 +35,6 @@ contract DistributionTest is Test {
         USER_03 = makeAddr("user03");
         USER_04 = makeAddr("user04");
 
-        tokenUSDC = new TestToken("USDC", 6);
-        tokenUSDC2 = new TestToken("USDC", 6);
+        tokenUSDC = new MockERC20("USDC", "USDC");
     }
 }
