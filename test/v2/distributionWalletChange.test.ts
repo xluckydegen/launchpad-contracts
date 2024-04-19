@@ -9,7 +9,7 @@ import { EthersWallets } from "../wallets.test";
 describe("App/V2/DistributionWalletChange/Basics", function ()
 {
   this.slow(100_000);
-  
+
   async function fixtureDeploy()
   {
     const [owner] = await hre.ethers.getSigners();
@@ -37,7 +37,7 @@ describe("App/V2/DistributionWalletChange/Basics", function ()
   }
 
   async function getWalletChangeStruct(WalletChangeCfg: {
-    uuid?:string,
+    uuid?: string,
     createdAt?: number,
     updatedAt?: number,
     deletedAt?: number,
@@ -75,7 +75,7 @@ describe("App/V2/DistributionWalletChange/Basics", function ()
     const targetWallet = await fixt.contractDistributionWalletChange.translateAddressToSourceAddress(fixt.wallet2.address);
     expect(targetWallet).eq(fixt.wallet1.address);
   });
-  
+
   it("get data", async () =>
   {
     const fixt = await fixture();
@@ -96,7 +96,7 @@ describe("App/V2/DistributionWalletChange/Basics", function ()
     expect(walletChanges.signature).eq("");
     expect(walletChanges.message).eq("");
   });
-  
+
   it("get data nonexists", async () =>
   {
     const fixt = await fixture();
@@ -129,7 +129,7 @@ describe("App/V2/DistributionWalletChange/Basics", function ()
     const targetWallet = await fixt.contractDistributionWalletChange.translateAddressToSourceAddress(fixt.wallet2.address);
     expect(targetWallet).eq(fixt.wallet1.address);
   });
-  
+
   it("tranmslate WalletChange source", async () =>
   {
     const fixt = await fixture();
@@ -168,7 +168,7 @@ describe("App/V2/DistributionWalletChange/Basics", function ()
     expect(targetWallet).eq(fixt.wallet1.address);
 
     await expect(fixt.contractDistributionWalletChange.translateAddressToSourceAddress(fixt.wallet1.address))
-    .revertedWithCustomError(fixt.contractDistributionWalletChange, "DistributionWalletChange_AddressAlreadyRedirected");
+      .revertedWithCustomError(fixt.contractDistributionWalletChange, "DistributionWalletChange_AddressAlreadyRedirected");
 
     await fixt.contractDistributionWalletChange.removeWalletChange(WalletChangeInitial.uuid);
 
@@ -196,7 +196,7 @@ describe("App/V2/DistributionWalletChange/Basics", function ()
     expect(targetWallet2).eq(fixt.wallet2.address);
 
     await fixt.contractDistributionWalletChange.storeWalletChange(WalletChangeInitial);
-    
+
     const targetWallet3 = await fixt.contractDistributionWalletChange.translateAddressToSourceAddress(fixt.wallet2.address);
     expect(targetWallet3).eq(fixt.wallet1.address);
   });

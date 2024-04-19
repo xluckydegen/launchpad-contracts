@@ -3,9 +3,6 @@
 ### Foundry
 
 Be sure you have foundry installed (if not, follow instructions [here](https://book.getfoundry.sh/getting-started/installation)), then run:
-```
-forge build
-```
 
 ### Yarn
 

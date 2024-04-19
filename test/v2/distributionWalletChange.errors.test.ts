@@ -9,7 +9,7 @@ import { EthersWallets } from "../wallets.test";
 describe("App/V2/DistributionWalletChange/Errors", function ()
 {
   this.slow(100_000);
-  
+
   async function fixtureDeploy()
   {
     const [owner] = await hre.ethers.getSigners();
@@ -95,7 +95,7 @@ describe("App/V2/DistributionWalletChange/Errors", function ()
     const fixt = await fixture();
     const WalletChangeInitial = await getWalletChangeStruct({
       walletFrom: fixt.wallet1.address,
-      walletTo:fixt.wallet1.address,
+      walletTo: fixt.wallet1.address,
     });
     await expect(fixt.contractDistributionWalletChange.storeWalletChange(WalletChangeInitial))
       .revertedWithCustomError(fixt.contractDistributionWalletChange, "DistributionWalletChange_InvalidData")

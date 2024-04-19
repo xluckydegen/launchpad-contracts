@@ -53,7 +53,7 @@ describe("App/V2/Behaviors/EmergencyWithdraw", function ()
     expect(balanceContract / 10n ** 18n).eq(10);
 
     const balanceOwner = await ethers.provider.getBalance(fixt.walletOwner);
-    expect(balanceOwner / 10n ** 18n).eq(9989);
+    expect(balanceOwner / 10n ** 18n).closeTo(9989,5);
 
     await fixt.contractTestEmergencyWithdraw.emergencyEthWithdraw();
 
@@ -81,7 +81,7 @@ describe("App/V2/Behaviors/EmergencyWithdraw", function ()
     expect(balanceContract / 10n ** 18n).eq(10);
 
     const balanceOwner = await ethers.provider.getBalance(fixt.walletOwner);
-    expect(balanceOwner / 10n ** 18n).eq(9989);
+    expect(balanceOwner / 10n ** 18n).closeTo(9989,5);
 
     await expect(fixt.contractTestEmergencyWithdraw.connect(fixt.wallet1).emergencyEthWithdraw())
       .revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");

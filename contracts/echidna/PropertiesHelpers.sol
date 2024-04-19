@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.23;
+pragma solidity 0.8.20;
 
 /// @notice Efficient library for creating string representations of integers.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/LibString.sol)

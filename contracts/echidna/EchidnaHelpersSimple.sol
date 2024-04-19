@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.23;
+pragma solidity 0.8.20;
 
 import {EchidnaSetup} from "./EchidnaSetup.sol";
 import {DistributionData} from "contracts/v2/DistributionV2.sol";

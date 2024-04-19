@@ -59,6 +59,14 @@ struct DistributionImportRecord {
     uint256 claimedAmount;
 }
 
+struct DistributionState {
+    string uuid;
+    uint256 lastChangedAt;
+    uint256 deposited;
+    uint256 claimed;
+    uint256 claimsCount;
+}
+
 interface IDistribution {
     function storeDistribution(DistributionData memory distribution) external;
 
@@ -67,7 +75,11 @@ interface IDistribution {
     function claim(string memory distributionUuid, uint256 maxAmount, bytes32[] calldata _proof) external;
 }
 
-contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw {
+contract Distribution is
+    IDistribution,
+    AccessControl,
+    BehaviorEmergencyWithdraw
+{
     // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗
     // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║
     // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║
@@ -87,6 +99,7 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     mapping(string => mapping(address => uint256)) public walletClaims;
     mapping(string => address[]) public distributionWalletsClaims; //can be multiple times!
     mapping(string => uint256) public distributionDeposited;
+    mapping(string => uint256) public distributionClaimed;
     mapping(string => uint256) public distributionLastChangeAt;
 
     //events
@@ -105,23 +118,44 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     }
 
     //register distribution (can be called multiple times)
-    function storeDistribution(DistributionData memory distribution) public override onlyRole(DEFAULT_ADMIN_ROLE) {
-        emit Debug(1, "storeDistribution");
-        if (bytes(distribution.uuid).length == 0) revert Distribution_InvalidData("DU");
-        if (address(distribution.token) == address(0)) revert Distribution_InvalidData("DT");
-        if (distribution.merkleRoot.length == 0) revert Distribution_InvalidData("DM");
-        if (distribution.tokensTotal == 0) revert Distribution_InvalidData("DTC");
-        if (distribution.tokensTotal < distribution.tokensDistributable) revert Distribution_InvalidData("TT_TD");
-        emit Debug(2, "storeDistribution");
+    function storeDistribution(
+        DistributionData memory distribution
+    ) public override onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (bytes(distribution.uuid).length == 0)
+            revert Distribution_InvalidData("DU"); //Invalid uuid (missing)
+        if (address(distribution.token) == address(0))
+            revert Distribution_InvalidData("DT"); //Invalid token (null address)
+        if (distribution.merkleRoot.length == 0)
+            revert Distribution_InvalidData("DM"); //Invalid merkle tree (empty)
+        if (distribution.tokensTotal == 0)
+            revert Distribution_InvalidData("DTC"); //Invalid total tokens (cant be zero)
+        if (distribution.tokensTotal < distribution.tokensDistributable)
+            revert Distribution_InvalidData("TT_TD"); //Distributable tokens larger than total tokens
 
         uint256 alreadyDeposited = distributionDeposited[distribution.uuid];
-        if (distribution.tokensDistributable < alreadyDeposited) revert Distribution_InvalidData("TD_AD");
+        if (distribution.tokensDistributable < alreadyDeposited)
+            revert Distribution_InvalidData("TD_AD"); //Already distributed tokens larger than total tokens
 
         distribution.updatedAt = block.timestamp;
         if (distribution.createdAt == 0) distribution.createdAt = block.timestamp;
 
-        DistributionData memory distributionStored = distributions[distribution.uuid];
-        if (distributionStored.createdAt == 0) distributionsIndexed.push(distribution.uuid);
+        DistributionData memory distributionStored = distributions[
+            distribution.uuid
+        ];
+        if (
+            distributionStored.createdAt != 0 &&
+            distributionDeposited[distribution.uuid] > 0 &&
+            distributionStored.token != distribution.token
+        ) revert Distribution_InvalidData("RTC"); //Trying to change token after deposits were made
+
+        if (
+            distributionStored.createdAt != 0 &&
+            distributionClaimed[distribution.uuid] > 0 &&
+            distributionStored.merkleRoot != distribution.merkleRoot
+        ) revert Distribution_InvalidData("RMC"); //Trying to change merkle tree after claims were made
+        
+        if (distributionStored.createdAt == 0)
+            distributionsIndexed.push(distribution.uuid);
         distributions[distribution.uuid] = distribution;
 
         emit DistributionStored(distribution.uuid);
@@ -135,15 +169,21 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         string memory distributionUuid,
         uint256 depositAmount
     ) external override onlyRole(DISTRIBUTOR_ROLE) {
-        DistributionData memory distributionStored = distributions[distributionUuid];
-        if (distributionStored.createdAt == 0) revert Distribution_DataNotExists();
+        DistributionData memory distributionStored = distributions[
+            distributionUuid
+        ];
+        if (distributionStored.createdAt == 0)
+            revert Distribution_DataNotExists(); //Depositing to non existing distribution
 
         uint256 alreadyDeposited = distributionDeposited[distributionUuid];
-        if (distributionStored.tokensDistributable < alreadyDeposited + depositAmount)
-            revert Distribution_InvalidParams("TB_TD");
+        if (
+            distributionStored.tokensDistributable <
+            alreadyDeposited + depositAmount
+        ) revert Distribution_InvalidParams("TB_TD"); //Depositing more than tokens distributable
 
         IERC20 token = distributionStored.token;
-        if (token.balanceOf(msg.sender) < depositAmount) revert Distribution_NotEnoughTokens();
+        if (token.balanceOf(msg.sender) < depositAmount)
+            revert Distribution_NotEnoughTokens(); //Not enough tokens for deposit
 
         //store deposited amount
         distributionDeposited[distributionUuid] += depositAmount;
@@ -165,11 +205,18 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
             claim(claims[claimNo].distributionUuid, claims[claimNo].maxAmount, claims[claimNo].proof);
     }
 
-    //@title claim tokens from a distribution
-    //@dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
-    //(5) update storage, (6) transfer
-    function claim(string memory distributionUuid, uint256 maxAmount, bytes32[] memory proof) public {
-        address claimingAddress = distributionWalletChange.translateAddressToSourceAddress(msg.sender);
+    /**
+     * claim tokens from a distribution
+     * @dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
+     * (5) update storage, (6) transfer
+     */
+    function claim(
+        string memory distributionUuid,
+        uint256 maxAmount,
+        bytes32[] memory proof
+    ) public {
+        address claimingAddress = distributionWalletChange
+            .translateAddressToSourceAddress(msg.sender);
         DistributionData memory distr = distributions[distributionUuid];
 
         //DISTRIBUTION DATA VALIDATION
@@ -189,7 +236,8 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         uint256 amountClaimable = convert(udAmountClaimable);
         uint256 amountClaimed = walletClaims[distributionUuid][claimingAddress];
 
-        if (amountClaimed >= amountClaimable) revert Distribution_NothingToClaim();
+        if (amountClaimed >= amountClaimable)
+            revert Distribution_NothingToClaim();
 
         uint256 amountToClaim = amountClaimable - amountClaimed;
 
@@ -199,6 +247,7 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         // UPDATE STORAGE
         lastChangeAt = block.timestamp;
         distributionLastChangeAt[distributionUuid] = block.timestamp;
+        distributionClaimed[distributionUuid] += amountToClaim;
         distributionWalletsClaims[distributionUuid].push(claimingAddress);
         walletClaims[distributionUuid][claimingAddress] += amountToClaim;
 
@@ -233,5 +282,36 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
 
     function distributionsCount() external view returns (uint256) {
         return distributionsIndexed.length;
+    }
+
+    function distributionsArray() external view returns (string[] memory) {
+        return distributionsIndexed;
+    }
+
+    function distributionsStateArray(
+        uint256 changedFrom
+    ) external view returns (DistributionState[] memory) {
+        uint256 records = 0;
+        for (uint ix = 0; ix < distributionsIndexed.length; ix++)
+            if (
+                distributionLastChangeAt[distributionsIndexed[ix]] > changedFrom
+            ) records++;
+
+        DistributionState[] memory result = new DistributionState[](records);
+        if (records == 0) return result;
+
+        records = 0;
+        for (uint ix = 0; ix < distributionsIndexed.length; ix++) {
+            string memory uuid = distributionsIndexed[ix];
+            if (distributionLastChangeAt[uuid] > changedFrom) {
+                result[ix].uuid = uuid;
+                result[ix].lastChangedAt = distributionLastChangeAt[uuid];
+                result[ix].deposited = distributionDeposited[uuid];
+                result[ix].claimed = distributionClaimed[uuid];
+                result[ix].claimsCount = distributionWalletsClaims[uuid].length;
+                records++;
+            }
+        }
+        return result;
     }
 }

@@ -70,7 +70,7 @@ contract DistributionWalletChange is
         if (
             walletChangeStored.createdAt != 0 &&
             walletChangeStored.deletedAt == 0
-        ) revert DistributionWalletChange_DataAlreadyExists("DAE"); // Data already exists
+        ) revert DistributionWalletChange_DataAlreadyExists("UUID"); // Data already exists
         if (walletChangesFromTo[walletChange.walletFrom] != address(0))
             revert DistributionWalletChange_DataAlreadyExists("DWF"); // Wallet from already exists in map
         if (walletChangesToFrom[walletChange.walletTo] != address(0))
