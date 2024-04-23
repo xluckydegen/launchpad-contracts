@@ -1,34 +1,43 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.20;
 
-import {Test} from "forge-std/Test.sol";
-import {CheatCodes} from "./Interface.sol";
-import {EchidnaHelpersSimple} from "contracts/echidna/EchidnaHelpersSimple.sol";
-import {MockERC20} from "contracts/echidna/MockERC20.sol";
-import {Distribution, DistributionData} from "contracts/v2/DistributionV2.sol";
-import {DistributionWalletChange} from "contracts/v2/DistributionWalletChangeV2.sol";
+import { Test } from "forge-std/Test.sol";
+import { CheatCodes } from "./Interface.sol";
+import { EchidnaMerkleHelpers } from "contracts/echidna/EchidnaMerkleHelpers.sol";
+import { MockERC20 } from "contracts/echidna/MockERC20.sol";
+import { Distribution, DistributionData } from "contracts/v2/DistributionV2.sol";
+import { DistributionWalletChange } from "contracts/v2/DistributionWalletChangeV2.sol";
 
-bytes4 constant selector_EchidnaHelpers__NoUserExists = bytes4(keccak256("EchidnaHelpers__NoUserExists()"));
+bytes4 constant selector_EchidnaMerkleHelpers_NoUserExists = bytes4(keccak256("EchidnaMerkleHelpers__NoUserExists()"));
+bytes4 constant selector_EchidnaMerkleHelpers__UserDoesNotExist = bytes4(
+    keccak256("EchidnaMerkleHelpers__UserDoesNotExist()")
+);
+bytes4 constant selector_EchidnaMerkleHelpers__MaxUsersReached = bytes4(
+    keccak256("EchidnaMerkleHelpers__MaxUsersReached()")
+);
 bytes4 constant selector_Distribution_NotEnoughTokens = bytes4(keccak256("Distribution__NotEnoughTokens()"));
 bytes4 constant selector_Distribution_NothingToClaim = bytes4(keccak256("Distribution_NothingToClaim()"));
 
-// forge test --match-contract TestEchidnaHelpersSimple
-contract TestEchidnaHelpersSimple is Test {
-    EchidnaHelpersSimple helpers;
+// forge test --match-contract TestEchidnaMerkleHelpers
+contract TestEchidnaMerkleHelpers is Test {
+    EchidnaMerkleHelpers helpers;
     CheatCodes cheats = CheatCodes(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     Distribution public distribution;
     DistributionWalletChange public distributionWalletChange;
 
-    address DISTRIBUTION_ADMIN;
+    address OWNER;
+
+    uint8 USER_01_ID = 0;
+    uint8 USER_02_ID = 1;
 
     function setUp() public {
-        helpers = new EchidnaHelpersSimple();
-        DISTRIBUTION_ADMIN = helpers.defaultAdmin();
+        OWNER = makeAddr("owner");
         // deploy distribution as its admin
-        cheats.startPrank(DISTRIBUTION_ADMIN);
+        cheats.startPrank(OWNER);
         distributionWalletChange = new DistributionWalletChange();
         distribution = new Distribution(distributionWalletChange);
+        helpers = new EchidnaMerkleHelpers(OWNER, OWNER);
         cheats.stopPrank();
     }
 
@@ -51,29 +60,44 @@ contract TestEchidnaHelpersSimple is Test {
         // validate user exists
         uint8 userCounterAfter = helpers._usersCounter();
         assertEq(userCounterAfter, 1);
-        address userAddress = helpers.getUserAddress(1);
-        assertEq(userAddress, address(uint160(1)));
-        uint256 userMaxAmount = helpers.getUserMaxAmount(1);
+        uint256 userMaxAmount = helpers.getUserMaxAmount(USER_01_ID);
         assertEq(userMaxAmount, 1000);
         uint256 totalTokens = helpers._tokensTotal();
         assertEq(totalTokens, 1000);
+        // create another user
+        helpers.createUser(2000);
+        uint8 userCounterAfterSecondUser = helpers._usersCounter();
+        assertEq(userCounterAfterSecondUser, 2);
+        uint256 userMaxAmountSecondUser = helpers.getUserMaxAmount(USER_02_ID);
+        assertEq(userMaxAmountSecondUser, 2000);
+        uint256 totalTokensAfterSecondUser = helpers._tokensTotal();
+        assertEq(totalTokensAfterSecondUser, 3000);
+    }
+
+    function test_createUserCapacityReached() public {
+        helpers.createUser(1000);
+        helpers.createUser(2000);
+        helpers.createUser(3000);
+        helpers.createUser(4000);
+        cheats.expectRevert(selector_EchidnaMerkleHelpers__MaxUsersReached);
+        helpers.createUser(5000);
     }
 
     function test_updateUserMaxAmount() public {
         // revert case -> no user exists
-        cheats.expectRevert(selector_EchidnaHelpers__NoUserExists);
-        helpers.updateUserMaxAmount(1, 3000);
+        cheats.expectRevert(selector_EchidnaMerkleHelpers__UserDoesNotExist);
+        helpers.updateUserMaxAmount(USER_01_ID, 3000);
 
         helpers.createUser(1000);
-        uint256 maxAmountBefore = helpers.getUserMaxAmount(1);
+        uint256 maxAmountBefore = helpers.getUserMaxAmount(USER_01_ID);
         assertEq(maxAmountBefore, 1000);
 
-        helpers.updateUserMaxAmount(1, 2000);
-        uint256 maxAmountAfter = helpers.getUserMaxAmount(1);
+        helpers.updateUserMaxAmount(USER_01_ID, 2000);
+        uint256 maxAmountAfter = helpers.getUserMaxAmount(USER_01_ID);
         assertEq(maxAmountAfter, 2000);
 
-        helpers.updateUserMaxAmount(2, 3000);
-        uint256 maxAmountAfterModulo = helpers.getUserMaxAmount(1);
+        helpers.updateUserMaxAmount(USER_01_ID, 3000);
+        uint256 maxAmountAfterModulo = helpers.getUserMaxAmount(USER_01_ID);
         assertEq(maxAmountAfterModulo, 3000);
 
         uint256 totalTokens = helpers._tokensTotal();
@@ -84,49 +108,58 @@ contract TestEchidnaHelpersSimple is Test {
         // before
         uint8 tokenCounterBefore = helpers._tokensCounter();
         assertEq(tokenCounterBefore, 1);
+
+        MockERC20 oldToken = helpers.getToken(tokenCounterBefore - 1);
+        string memory oldTokenName = oldToken.name();
+        assertEq(oldTokenName, "Token_0");
+
         // act
         helpers.createNewToken();
+
         // after
         uint8 tokenCounterAfter = helpers._tokensCounter();
         assertEq(tokenCounterAfter, 2);
 
-        MockERC20 token = helpers.getToken(tokenCounterAfter);
-        string memory tokenName = token.name();
-        assertEq(tokenName, "Token_2");
+        MockERC20 newToken = helpers.getToken(tokenCounterAfter - 1);
+        string memory tokenName = newToken.name();
+        assertEq(tokenName, "Token_1");
     }
 
-    function test_mintTokens() public {
+    function test_mintTokensToUser() public {
         // arrange
-        MockERC20 token = helpers.getToken(1);
+        MockERC20 token = helpers.getToken(0);
         helpers.createUser(1000);
-        address userAddress = helpers.getUserAddress(1);
+        address userAddress = helpers.getUserAddress(USER_01_ID);
         uint256 userBalanceBefore = token.balanceOf(userAddress);
         assertEq(userBalanceBefore, 0);
         // act
-        helpers.mintTokens(1, 100);
+        helpers.mintTokensToUser(USER_01_ID, 0, 100);
         // assert
         uint256 userBalanceAfter = token.balanceOf(userAddress);
         assertEq(userBalanceAfter, 100);
     }
 
-    function test_createNewTokenAndMintTokens() public {
+    function test_createNewTokenAndMintTokensUser() public {
         // arrange
         helpers.createNewToken();
-        MockERC20 newToken = helpers.getToken(2);
+        MockERC20 newToken = helpers.getToken(1);
         helpers.createUser(1000);
-        address userAddress = helpers.getUserAddress(1);
+        address userAddress = helpers.getUserAddress(USER_01_ID);
 
         uint256 userBalanceBefore = newToken.balanceOf(userAddress);
         assertEq(userBalanceBefore, 0);
 
-        // act
-        helpers.mintTokens(1, 100);
+        // fail
+        cheats.expectRevert(selector_EchidnaMerkleHelpers__UserDoesNotExist);
+        helpers.mintTokensToUser(USER_02_ID, 1, 100);
+        // success
+        helpers.mintTokensToUser(USER_01_ID, 1, 100);
 
         // assert
         uint256 userBalanceAfter = newToken.balanceOf(userAddress);
         assertEq(userBalanceAfter, 100);
 
-        MockERC20 oldToken = helpers.getToken(1);
+        MockERC20 oldToken = helpers.getToken(0);
         uint256 userBalanceOldToken = oldToken.balanceOf(userAddress);
         assertEq(userBalanceOldToken, 0);
     }
@@ -169,14 +202,14 @@ contract TestEchidnaHelpersSimple is Test {
     function test_MerkleValidity() public {
         _createTestCase01();
         DistributionData memory distributionData = helpers.getCurrentDistribution();
-        MockERC20 token = helpers.getToken(1);
+        MockERC20 token = helpers.getToken(0);
         // store new distribution
-        cheats.prank(DISTRIBUTION_ADMIN);
+        cheats.prank(OWNER);
         distribution.storeDistribution(distributionData);
         string memory distributionUUID = distributionData.uuid;
         // arrange users
-        address userAddressOne = helpers.getUserAddress(1);
-        bytes32[] memory userProof = helpers.getUserProof(1);
+        address userAddressOne = helpers.getUserAddress(USER_01_ID);
+        bytes32[] memory userProof = helpers.getUserProof(USER_01_ID);
         //  TEST: no one can claim
         cheats.startPrank(address(userAddressOne));
         cheats.expectRevert(selector_Distribution_NothingToClaim);
@@ -184,13 +217,13 @@ contract TestEchidnaHelpersSimple is Test {
         cheats.stopPrank();
         // TEST: successful claim
         // mint tokens to distributor
-        helpers.mintTokens(0, distributionData.tokensTotal);
-        uint256 adminBalance = token.balanceOf(DISTRIBUTION_ADMIN);
+        helpers.mintTokenToDistributor(0, distributionData.tokensTotal);
+        uint256 adminBalance = token.balanceOf(OWNER);
         assertEq(adminBalance, distributionData.tokensTotal);
         // adjust distribution data
         distributionData.tokensDistributable = distributionData.tokensTotal;
         // store changed distribution data
-        cheats.startPrank(DISTRIBUTION_ADMIN);
+        cheats.startPrank(OWNER);
         distribution.storeDistribution(distributionData);
         token.approve(address(distribution), distributionData.tokensTotal);
         distribution.depositTokensToDistribution(distributionUUID, distributionData.tokensTotal);

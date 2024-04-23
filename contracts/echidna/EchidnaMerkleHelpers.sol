@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {EchidnaSetup} from "./EchidnaSetup.sol";
-import {DistributionData} from "contracts/v2/DistributionV2.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {MockERC20} from "contracts/echidna/MockERC20.sol";
-import {CompleteMerkle} from "murky/CompleteMerkle.sol";
+import { EchidnaSetup } from "./EchidnaSetup.sol";
+import { DistributionData } from "contracts/v2/DistributionV2.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { MockERC20 } from "contracts/echidna/MockERC20.sol";
+import { CompleteMerkle } from "murky/CompleteMerkle.sol";
 
-error EchidnaHelpers__NoUserExists();
+error EchidnaMerkleHelpers__NoUserExists();
+error EchidnaMerkleHelpers__UserDoesNotExist();
+error EchidnaMerkleHelpers__MaxUsersReached();
+error EchidnaMerkleHelpers__NoTokenExists();
 
-/// EchidnaHelpersSimple serves to substitute the process of Distribution data generation which is off-chain process
-///  
-contract EchidnaHelpersSimple is EchidnaSetup {
+/// EchidnaMerkleHelpers serves to substitute the process of Distribution data generation which is an off-chain process
+/// Idea here is to let Echidna create own distribution data on-chain
+contract EchidnaMerkleHelpers is EchidnaSetup {
     struct User {
         address userAddress;
         uint256 maxAmount;
@@ -26,8 +29,8 @@ contract EchidnaHelpersSimple is EchidnaSetup {
     // distribution params new
     uint8 public _usersCounter;
     uint8 public _tokensCounter;
-    bool public _distributionEnabled;
 
+    bool public _distributionEnabled;
     uint256 public _tokensTotal;
     uint256 public _tokensDistributable;
     bytes32 public _merkleRoot;
@@ -36,29 +39,34 @@ contract EchidnaHelpersSimple is EchidnaSetup {
     mapping(uint8 _userId => bytes32[] _proof) public _usersProofs;
     mapping(uint8 _tokenId => MockERC20 token) public _tokens;
 
+    mapping(address => uint256) public _userToMaxAmount;
+
     DistributionData public currentDistribution;
 
     event UserCreated(uint8 userId, address userAddress, uint256 maxAmount);
 
-    constructor() {
+    constructor(address _defaultAdmin, address _distributor) {
         merkle = new CompleteMerkle();
-        defaultAdmin = msg.sender;
-        distributor = msg.sender;
+
+        defaultAdmin = _defaultAdmin;
+        distributor = _distributor;
 
         createNewToken();
     }
 
     function createUser(uint256 maxAmount) public {
-        _usersCounter += 1;
+        if (_usersCounter == USER_COUNT) revert EchidnaMerkleHelpers__MaxUsersReached();
         uint8 _newUserId = _usersCounter;
         // generate address from the user id
-        address newUserAddress = address(uint160(_newUserId));
+        address newUserAddress = getUserAccount(_newUserId);
         // create new user object
-        User memory newUser = User({userAddress: newUserAddress, maxAmount: maxAmount, created: true});
+        User memory newUser = User({ userAddress: newUserAddress, maxAmount: maxAmount, created: true });
         // add new user to the active distribution
         _users[_usersCounter] = newUser;
         // update totals
         _tokensTotal += maxAmount;
+        // update users counter
+        _usersCounter += 1;
 
         emit UserCreated(_newUserId, newUserAddress, maxAmount);
     }
@@ -72,15 +80,15 @@ contract EchidnaHelpersSimple is EchidnaSetup {
     }
 
     function getUserProof(uint8 _userId) public view returns (bytes32[] memory) {
+        _userId = _userId % USER_COUNT;
         return _usersProofs[_userId];
     }
 
     function updateUserMaxAmount(uint8 _userId, uint256 _maxAmount) public {
-        if (_usersCounter == 0) revert EchidnaHelpers__NoUserExists();
-        if (_userId > _usersCounter) {
-            _userId = (_userId % _usersCounter) + 1;
-        }
-        // recalculate tokensTotal
+        // get user id
+        _userId = _userId % USER_COUNT;
+        if (_users[_userId].created == false) revert EchidnaMerkleHelpers__UserDoesNotExist();
+        // update tokensTotal
         _tokensTotal += _maxAmount - _users[_userId].maxAmount;
         // update user maxAmount in the given distribution data
         _users[_userId].maxAmount = _maxAmount;
@@ -88,32 +96,38 @@ contract EchidnaHelpersSimple is EchidnaSetup {
 
     // TODO reconsider this -> do we need to create new token by Echidna?
     function createNewToken() public {
-        _tokensCounter += 1;
         string memory tokenName = string.concat("Token_", Strings.toString(_tokensCounter));
         string memory tokenTicker = string.concat("TST_", Strings.toString(_tokensCounter));
         MockERC20 newToken = new MockERC20(tokenName, tokenTicker);
         _tokens[_tokensCounter] = newToken;
+        _tokensCounter += 1;
     }
 
     function getToken(uint8 _tokenId) public view returns (MockERC20) {
+        if (_tokensCounter == 0) revert EchidnaMerkleHelpers__NoTokenExists();
+        _tokenId = _tokenId % _tokensCounter;
         return _tokens[_tokenId];
     }
 
-    function mintTokens(uint8 _userId, uint256 amount) public {
-        address to;
+    function mintTokensToUser(uint8 _userId, uint8 _tokenId, uint256 amount) public {
+        if (_tokensCounter == 0) revert EchidnaMerkleHelpers__NoTokenExists();
+        _userId = _userId % USER_COUNT;
+        _tokenId = _tokenId % _tokensCounter;
+        if (_users[_userId].created == false) revert EchidnaMerkleHelpers__UserDoesNotExist();
+        address to = _users[_userId].userAddress;
+        _tokens[_tokenId].mint(to, amount);
+    }
 
-        if (_userId == 0) {
-            to = distributor;
-        } else {
-            if (_tokensCounter == 0) revert EchidnaHelpers__NoUserExists();
-            if (_userId > _usersCounter) {
-                _userId = (_userId % _tokensCounter) + 1;
-            }
-            to = _users[_userId].userAddress;
-        }
-        // hevm.prank(defaultAdmin); // NOTE deployer of the token is EchidnaHelpersSimple
+    function mintTokenToAdmin(uint8 _tokenId, uint256 amount) public {
+        if (_tokensCounter == 0) revert EchidnaMerkleHelpers__NoTokenExists();
+        _tokenId = _tokenId % _tokensCounter;
+        _tokens[_tokenId].mint(defaultAdmin, amount);
+    }
 
-        _tokens[_tokensCounter].mint(to, amount);
+    function mintTokenToDistributor(uint8 _tokenId, uint256 amount) public {
+        if (_tokensCounter == 0) revert EchidnaMerkleHelpers__NoTokenExists();
+        _tokenId = _tokenId % _tokensCounter;
+        _tokens[_tokenId].mint(distributor, amount);
     }
 
     function setTokensDistributable(uint256 amount) public {
@@ -128,7 +142,7 @@ contract EchidnaHelpersSimple is EchidnaSetup {
         DistributionData memory newDistribution;
 
         _generateMerkleRootAndUsersProofs();
-        MockERC20 token = MockERC20(address(_tokens[_tokensCounter]));
+        MockERC20 token = MockERC20(address(_tokens[_tokensCounter - 1])); // NOTE: set the current token
 
         newDistribution.uuid = "TEST_UUID";
         newDistribution.token = token; // take the last one created
@@ -157,7 +171,7 @@ contract EchidnaHelpersSimple is EchidnaSetup {
     }
 
     function _updateUsersProofs(bytes32[] memory leaves) internal {
-        for (uint8 i = 1; i <= _usersCounter; i++) {
+        for (uint8 i; i < _usersCounter; i++) {
             _usersProofs[i] = merkle.getProof(leaves, i);
         }
     }
