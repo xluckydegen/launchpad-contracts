@@ -38,7 +38,7 @@
       "type": "shell",
       "command": "rm build -r -fo; npx tsc --build",
       "group": "build"
-    },    
+    },
     {
       "label": "autoconfigure",
       "type": "shell",
@@ -123,7 +123,7 @@
     {
       "label": "Test contracts",
       "type": "shell",
-      "command": "npx mocha -r ts-node/register test ./test/*.test.ts",
+      "command": "npx mocha -r ts-node/register test ./test/**/*.test.ts",
       "group": "build"
     },
     {

@@ -6,6 +6,8 @@ typechain
 typechain-types
 .yarn
 .github
+.build
+yarn.lock
 
 # Hardhat files
 cache
@@ -15,3 +17,4 @@ artifacts
 out
 
 
+yarn.lock

@@ -85,13 +85,6 @@ interface IDistribution {
 }
 
 contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw {
-    // ███╗   ███╗ ██████╗  ██████╗ ███╗   ██╗██╗  ██╗██╗██╗     ██╗
-    // ████╗ ████║██╔═══██╗██╔═══██╗████╗  ██║██║  ██║██║██║     ██║
-    // ██╔████╔██║██║   ██║██║   ██║██╔██╗ ██║███████║██║██║     ██║
-    // ██║╚██╔╝██║██║   ██║██║   ██║██║╚██╗██║██╔══██║██║██║     ██║
-    // ██║ ╚═╝ ██║╚██████╔╝╚██████╔╝██║ ╚████║██║  ██║██║███████╗███████╗
-    // ╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝
-
     //last update
     uint256 public lastChangeAt;
 
@@ -277,6 +270,7 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         lastChangeAt = block.timestamp;
         distributionLastChangeAt[distributionUuid] = block.timestamp;
+        if (distributionDeposited[distributionUuid] > 0) revert Distribution_InvalidParams("DD"); //Distribution already had deposit
 
         for (uint256 recordNo = 0; recordNo < records.length; recordNo++) {
             address wallet = records[recordNo].wallet;

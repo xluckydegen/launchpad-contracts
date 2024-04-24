@@ -129,9 +129,6 @@ describe("App/V2/Distribution/Imports", function ()
     });
     await fixt.contractDistribution.storeDistribution(distributionInitial);
 
-    await fixt.tokenUSDC1.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
-    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
-
     const alreadyClaimed = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
     expect(alreadyClaimed).eq(0);
 
@@ -156,9 +153,6 @@ describe("App/V2/Distribution/Imports", function ()
     });
     await fixt.contractDistribution.storeDistribution(distributionInitial);
 
-    await fixt.tokenUSDC1.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
-    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
-
     const alreadyClaimed = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
     expect(alreadyClaimed).eq(0);
 
@@ -169,6 +163,9 @@ describe("App/V2/Distribution/Imports", function ()
 
     const alreadyClaimed2 = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
     expect(alreadyClaimed2).eq(fixt.merkleTree.walletAmount1 / 2);
+
+    await fixt.tokenUSDC1.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
+    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
 
     distributionInitial.tokensDistributable = 10_000_000;
     await fixt.contractDistribution.storeDistribution(distributionInitial);
@@ -185,7 +182,6 @@ describe("App/V2/Distribution/Imports", function ()
     const balanceWalletAfter = await fixt.tokenUSDC1.balanceOf(fixt.wallet1.address);
     expect(balanceWalletAfter).eq(fixt.merkleTree.walletAmount1 / 2); //because first half was only imported
   });
-
 
   it("import Distribution non owner", async () =>
   {
@@ -209,6 +205,35 @@ describe("App/V2/Distribution/Imports", function ()
       distributionInitial.uuid,
       [{ wallet: fixt.wallet1.address, claimedAmount: fixt.merkleTree.walletAmount1 / 2 }]
     )).revertedWith("AccessControl: account 0x22443427b6d090f53f18559c48d84f917e5908a9 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000");
+  });
+
+  it("import Distribution after deposit", async () =>
+  {
+    const fixt = await fixture();
+    const distributionInitial = await getDistributionStruct({
+      token: await fixt.tokenUSDC1.getAddress(),
+      tokensTotal: 10_000_000,
+      tokensDistributable: 5_000_000,
+      merkleRoot: fixt.merkleTree.root,
+      enabled: true,
+    });
+    await fixt.contractDistribution.storeDistribution(distributionInitial);
+
+    await fixt.tokenUSDC1.approve(await fixt.contractDistribution.getAddress(), 5_000_000);
+    await fixt.contractDistribution.depositTokensToDistribution(distributionInitial.uuid, 5_000_000);
+
+    const alreadyClaimed = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
+    expect(alreadyClaimed).eq(0);
+
+    const alreadyDeposited = await fixt.contractDistribution.distributionDeposited(distributionInitial.uuid);
+    expect(alreadyDeposited).eq(5_000_000);
+
+    await expect(fixt.contractDistribution.emergencyImportClaims(
+      distributionInitial.uuid,
+      [{ wallet: fixt.wallet1.address, claimedAmount: fixt.merkleTree.walletAmount1 / 2 }]
+    ))
+      .revertedWithCustomError(fixt.contractDistribution, "Distribution_InvalidParams")
+      .withArgs("DD");
   });
 
 });
