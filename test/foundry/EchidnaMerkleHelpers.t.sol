@@ -30,6 +30,13 @@ contract TestEchidnaMerkleHelpers is Test {
 
     uint8 USER_01_ID = 0;
     uint8 USER_02_ID = 1;
+    uint8 USER_03_ID = 2;
+    uint8 USER_04_ID = 3;
+
+    uint256 USER_01_AMOUNT = 1000;
+    uint256 USER_02_AMOUNT = 2000;
+    uint256 USER_03_AMOUNT = 3000;
+    uint256 USER_04_AMOUNT = 4000;
 
     function setUp() public {
         OWNER = makeAddr("owner");
@@ -61,24 +68,24 @@ contract TestEchidnaMerkleHelpers is Test {
         uint8 userCounterAfter = helpers._usersCounter();
         assertEq(userCounterAfter, 1);
         uint256 userMaxAmount = helpers.getUserMaxAmount(USER_01_ID);
-        assertEq(userMaxAmount, 1000);
-        uint256 totalTokens = helpers._tokensTotal();
-        assertEq(totalTokens, 1000);
+        assertEq(userMaxAmount, USER_01_AMOUNT);
+        uint256 totalTokens = helpers.tokensTotal();
+        assertEq(totalTokens, USER_01_AMOUNT);
         // create another user
-        helpers.createUser(2000);
+        helpers.createUser(USER_02_AMOUNT);
         uint8 userCounterAfterSecondUser = helpers._usersCounter();
         assertEq(userCounterAfterSecondUser, 2);
         uint256 userMaxAmountSecondUser = helpers.getUserMaxAmount(USER_02_ID);
-        assertEq(userMaxAmountSecondUser, 2000);
-        uint256 totalTokensAfterSecondUser = helpers._tokensTotal();
-        assertEq(totalTokensAfterSecondUser, 3000);
+        assertEq(userMaxAmountSecondUser, USER_02_AMOUNT);
+        uint256 totalTokensAfterSecondUser = helpers.tokensTotal();
+        assertEq(totalTokensAfterSecondUser, USER_01_AMOUNT + USER_02_AMOUNT);
     }
 
     function test_createUserCapacityReached() public {
-        helpers.createUser(1000);
-        helpers.createUser(2000);
-        helpers.createUser(3000);
-        helpers.createUser(4000);
+        helpers.createUser(USER_01_AMOUNT);
+        helpers.createUser(USER_02_AMOUNT);
+        helpers.createUser(USER_03_AMOUNT);
+        helpers.createUser(USER_04_AMOUNT);
         cheats.expectRevert(selector_EchidnaMerkleHelpers__MaxUsersReached);
         helpers.createUser(5000);
     }
@@ -86,11 +93,11 @@ contract TestEchidnaMerkleHelpers is Test {
     function test_updateUserMaxAmount() public {
         // revert case -> no user exists
         cheats.expectRevert(selector_EchidnaMerkleHelpers__UserDoesNotExist);
-        helpers.updateUserMaxAmount(USER_01_ID, 3000);
+        helpers.updateUserMaxAmount(USER_01_ID, USER_01_AMOUNT);
 
-        helpers.createUser(1000);
+        helpers.createUser(USER_01_AMOUNT);
         uint256 maxAmountBefore = helpers.getUserMaxAmount(USER_01_ID);
-        assertEq(maxAmountBefore, 1000);
+        assertEq(maxAmountBefore, USER_01_AMOUNT);
 
         helpers.updateUserMaxAmount(USER_01_ID, 2000);
         uint256 maxAmountAfter = helpers.getUserMaxAmount(USER_01_ID);
@@ -100,7 +107,7 @@ contract TestEchidnaMerkleHelpers is Test {
         uint256 maxAmountAfterModulo = helpers.getUserMaxAmount(USER_01_ID);
         assertEq(maxAmountAfterModulo, 3000);
 
-        uint256 totalTokens = helpers._tokensTotal();
+        uint256 totalTokens = helpers.tokensTotal();
         assertEq(totalTokens, 3000);
     }
 
@@ -109,7 +116,7 @@ contract TestEchidnaMerkleHelpers is Test {
         uint8 tokenCounterBefore = helpers._tokensCounter();
         assertEq(tokenCounterBefore, 1);
 
-        MockERC20 oldToken = helpers.getToken(tokenCounterBefore - 1);
+        MockERC20 oldToken = helpers.tokens(tokenCounterBefore - 1);
         string memory oldTokenName = oldToken.name();
         assertEq(oldTokenName, "Token_0");
 
@@ -120,28 +127,28 @@ contract TestEchidnaMerkleHelpers is Test {
         uint8 tokenCounterAfter = helpers._tokensCounter();
         assertEq(tokenCounterAfter, 2);
 
-        MockERC20 newToken = helpers.getToken(tokenCounterAfter - 1);
+        MockERC20 newToken = helpers.tokens(tokenCounterAfter - 1);
         string memory tokenName = newToken.name();
         assertEq(tokenName, "Token_1");
     }
 
     function test_setToken() public {
-        MockERC20 currentToken = helpers._token();
+        MockERC20 currentToken = helpers.currentToken();
         assertEq(address(currentToken), address(0));
 
-        MockERC20 token = helpers.getToken(0);
+        MockERC20 token = helpers.tokens(0);
         string memory tokenName = token.name();
         assertEq(tokenName, "Token_0");
 
         helpers.setToken(0);
-        MockERC20 newCurrentToken = helpers._token();
+        MockERC20 newCurrentToken = helpers.currentToken();
         assertEq(address(newCurrentToken), address(token));
     }
 
     function test_mintTokensToUser() public {
         // arrange
-        MockERC20 token = helpers.getToken(0);
-        helpers.createUser(1000);
+        MockERC20 token = helpers.tokens(0);
+        helpers.createUser(USER_01_AMOUNT);
         address userAddress = helpers.getUserAddress(USER_01_ID);
         uint256 userBalanceBefore = token.balanceOf(userAddress);
         assertEq(userBalanceBefore, 0);
@@ -155,7 +162,7 @@ contract TestEchidnaMerkleHelpers is Test {
     function test_createNewTokenAndMintTokensUser() public {
         // arrange
         helpers.createNewToken();
-        MockERC20 newToken = helpers.getToken(1);
+        MockERC20 newToken = helpers.tokens(1);
         helpers.createUser(1000);
         address userAddress = helpers.getUserAddress(USER_01_ID);
 
@@ -172,19 +179,19 @@ contract TestEchidnaMerkleHelpers is Test {
         uint256 userBalanceAfter = newToken.balanceOf(userAddress);
         assertEq(userBalanceAfter, 100);
 
-        MockERC20 oldToken = helpers.getToken(0);
+        MockERC20 oldToken = helpers.tokens(0);
         uint256 userBalanceOldToken = oldToken.balanceOf(userAddress);
         assertEq(userBalanceOldToken, 0);
     }
 
     function test_setTokensDistributable() public {
         helpers.setTokensDistributable(1000);
-        assertEq(1000, helpers._tokensDistributable());
+        assertEq(1000, helpers.tokensDistributable());
     }
 
     function test_enableDistribution() public {
         helpers.enableDistribution(true);
-        assertEq(true, helpers._distributionEnabled());
+        assertEq(true, helpers.distributionEnabled());
     }
 
     ////////////////////////////////////////////////////
@@ -192,9 +199,9 @@ contract TestEchidnaMerkleHelpers is Test {
     ////////////////////////////////////////////////////
 
     function _createTestCase01() internal {
-        helpers.createUser(1000);
-        helpers.createUser(2000);
-        helpers.createUser(3000);
+        helpers.createUser(USER_01_AMOUNT);
+        helpers.createUser(USER_02_AMOUNT);
+        helpers.createUser(USER_03_AMOUNT);
         helpers.setToken(0);
         helpers.enableDistribution(true);
         helpers.storeDistributionData();
@@ -202,11 +209,30 @@ contract TestEchidnaMerkleHelpers is Test {
 
     function test_storeDistributionData() public {
         _createTestCase01();
-        DistributionData memory distributionData = helpers.getCurrentDistribution();
+        DistributionData memory distributionData = helpers.getCurrentDistributionData();
 
         assertEq(distributionData.enabled, true);
         assertEq(distributionData.tokensTotal, 6000);
         assertEq(distributionData.tokensDistributable, 0);
+    }
+
+    function test_usersByMerkleRoot() public {
+        _createTestCase01();
+        DistributionData memory distributionData = helpers.getCurrentDistributionData();
+
+        bytes32 merkleRoot = distributionData.merkleRoot;
+
+        address userOneAddress = helpers.getUserAddress(USER_01_ID);
+        uint256 userOneMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(merkleRoot, userOneAddress);
+        assertEq(userOneMaxAmount, USER_01_AMOUNT);
+
+        address userTwoAddress = helpers.getUserAddress(USER_02_ID);
+        uint256 userTwoMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(merkleRoot, userTwoAddress);
+        assertEq(userTwoMaxAmount, USER_02_AMOUNT);
+
+        address userThreeAddress = helpers.getUserAddress(USER_03_ID);
+        uint256 userThreeMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(merkleRoot, userThreeAddress);
+        assertEq(userThreeMaxAmount, USER_03_AMOUNT);
     }
 
     /// @dev instead of testing the Merkle Root and Proofs generation by differential testing approach
@@ -215,8 +241,8 @@ contract TestEchidnaMerkleHelpers is Test {
     /// https://github.com/dmfxyz/murky/tree/main/differential_testing
     function test_MerkleValidity() public {
         _createTestCase01();
-        DistributionData memory distributionData = helpers.getCurrentDistribution();
-        MockERC20 token = helpers.getToken(0);
+        DistributionData memory distributionData = helpers.getCurrentDistributionData();
+        MockERC20 token = helpers.tokens(0);
         // store new distribution
         cheats.prank(OWNER);
         distribution.storeDistribution(distributionData);
