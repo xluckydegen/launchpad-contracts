@@ -5,7 +5,10 @@ pragma solidity >=0.8.19;
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import { DistributionWalletChange, IDistributionWalletChange } from "./DistributionWalletChangeV2.sol";
+import {
+    DistributionWalletChange,
+    IDistributionWalletChange
+} from "./DistributionWalletChangeV2.sol";
 import { BehaviorEmergencyWithdraw } from "../v2Behaviors/BehaviorEmergencyWithdraw.sol";
 import { UD60x18, convert } from "@prb/math/src/UD60x18.sol";
 
@@ -69,9 +72,16 @@ struct DistributionState {
 interface IDistribution {
     function storeDistribution(DistributionData memory distribution) external;
 
-    function depositTokensToDistribution(string memory distributionUuid, uint256 depositAmount) external;
+    function depositTokensToDistribution(
+        string memory distributionUuid,
+        uint256 depositAmount
+    ) external;
 
-    function claim(string memory distributionUuid, uint256 maxAmount, bytes32[] calldata _proof) external;
+    function claim(
+        string memory distributionUuid,
+        uint256 maxAmount,
+        bytes32[] calldata _proof
+    ) external;
 }
 
 contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw {
@@ -102,8 +112,6 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     event DistributionDeposited(string uuid, uint256 amount);
     event DistributionClaimed(string uuid, address wallet, uint256 amount);
 
-    event Debug(uint256 id, string text);
-
     bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR");
 
     constructor(IDistributionWalletChange _ditributiondistribution) {
@@ -113,7 +121,9 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     }
 
     //register distribution (can be called multiple times)
-    function storeDistribution(DistributionData memory distribution) public override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function storeDistribution(
+        DistributionData memory distribution
+    ) public override onlyRole(DEFAULT_ADMIN_ROLE) {
         if (bytes(distribution.uuid).length == 0) {
             revert Distribution_InvalidData("DU");
         } //Invalid uuid (missing)
@@ -196,7 +206,11 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     //claiming multiple distributions in one tx
     function claimMultiple(DistributionClaimParams[] memory claims) public {
         for (uint256 claimNo = 0; claimNo < claims.length; claimNo++) {
-            claim(claims[claimNo].distributionUuid, claims[claimNo].maxAmount, claims[claimNo].proof);
+            claim(
+                claims[claimNo].distributionUuid,
+                claims[claimNo].maxAmount,
+                claims[claimNo].proof
+            );
         }
     }
 
@@ -205,8 +219,14 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
      * @dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
      * (5) update storage, (6) transfer
      */
-    function claim(string memory distributionUuid, uint256 maxAmount, bytes32[] memory proof) public {
-        address claimingAddress = distributionWalletChange.translateAddressToSourceAddress(msg.sender);
+    function claim(
+        string memory distributionUuid,
+        uint256 maxAmount,
+        bytes32[] memory proof
+    ) public {
+        address claimingAddress = distributionWalletChange.translateAddressToSourceAddress(
+            msg.sender
+        );
         DistributionData memory distr = distributions[distributionUuid];
 
         //DISTRIBUTION DATA VALIDATION
@@ -216,12 +236,15 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
 
         //MERKLE VALIDATION
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(claimingAddress, maxAmount))));
-        if (!MerkleProof.verify(proof, distr.merkleRoot, leaf)) revert Distribution_InvalidMerkleProof();
+        if (!MerkleProof.verify(proof, distr.merkleRoot, leaf))
+            revert Distribution_InvalidMerkleProof();
 
         //CALCULATIONS AND CALCULATIONS VALIDATION
         UD60x18 udTokensDistributable = convert(distr.tokensDistributable);
         UD60x18 udTokensTotal = convert(distr.tokensTotal);
-        UD60x18 udAmountClaimable = udTokensDistributable.mul(convert(maxAmount)).div(udTokensTotal);
+        UD60x18 udAmountClaimable = udTokensDistributable.mul(convert(maxAmount)).div(
+            udTokensTotal
+        );
 
         uint256 amountClaimable = convert(udAmountClaimable);
         uint256 amountClaimed = walletClaims[distributionUuid][claimingAddress];
@@ -267,7 +290,9 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         distributionsPaused = _paused;
     }
 
-    function distributionWalletsClaimsCount(string memory distributionUuid) external view returns (uint256) {
+    function distributionWalletsClaimsCount(
+        string memory distributionUuid
+    ) external view returns (uint256) {
         return distributionWalletsClaims[distributionUuid].length;
     }
 
@@ -279,7 +304,9 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         return distributionsIndexed;
     }
 
-    function distributionsStateArray(uint256 changedFrom) external view returns (DistributionState[] memory) {
+    function distributionsStateArray(
+        uint256 changedFrom
+    ) external view returns (DistributionState[] memory) {
         uint256 records = 0;
         for (uint256 ix = 0; ix < distributionsIndexed.length; ix++) {
             if (distributionLastChangeAt[distributionsIndexed[ix]] > changedFrom) records++;

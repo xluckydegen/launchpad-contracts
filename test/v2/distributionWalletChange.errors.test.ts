@@ -198,4 +198,19 @@ describe("App/V2/DistributionWalletChange/Errors", function ()
     await expect(fixt.contractDistributionWalletChange.removeWalletChange(WalletChangeInitial.uuid))
       .revertedWithCustomError(fixt.contractDistributionWalletChange, "DistributionWalletChange_DataNotExists");
   });
+  
+  it("register WalletChange with delete flag", async () =>
+    {
+      const fixt = await fixture();
+      const WalletChangeInitial = await getWalletChangeStruct({
+        walletFrom: fixt.wallet1.address,
+        walletTo: fixt.wallet2.address,
+        deletedAt : Date.now()
+      });
+  
+      await expect(fixt.contractDistributionWalletChange.storeWalletChange(WalletChangeInitial))
+      .revertedWithCustomError(fixt.contractDistributionWalletChange, "DistributionWalletChange_InvalidData")
+      .withArgs("IDD");
+    });
+
 });
