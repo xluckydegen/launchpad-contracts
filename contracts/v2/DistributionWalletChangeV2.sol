@@ -29,7 +29,11 @@ interface IDistributionWalletChange {
     function translateAddressToSourceAddress(address wallet) external view returns (address);
 }
 
-contract DistributionWalletChange is IDistributionWalletChange, AccessControl, BehaviorEmergencyWithdraw {
+contract DistributionWalletChange is
+    IDistributionWalletChange,
+    AccessControl,
+    BehaviorEmergencyWithdraw
+{
     //data
     mapping(string => WalletChangeData) public walletChanges;
     mapping(address => address) public walletChangesFromTo; // former old address (the original one, now invalid)
@@ -42,7 +46,9 @@ contract DistributionWalletChange is IDistributionWalletChange, AccessControl, B
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function storeWalletChange(WalletChangeData memory walletChange) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function storeWalletChange(
+        WalletChangeData memory walletChange
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         // NOTE neither signature nor message are being checked
         if (bytes(walletChange.uuid).length == 0) {
             revert DistributionWalletChange_InvalidData("IWU");
@@ -56,6 +62,10 @@ contract DistributionWalletChange is IDistributionWalletChange, AccessControl, B
         if (walletChange.walletFrom == walletChange.walletTo) {
             revert DistributionWalletChange_InvalidData("IWFT");
         } // Invalid Wallet From and To
+        if (walletChange.deletedAt != 0) {
+            revert DistributionWalletChange_InvalidData("IDD");
+        } // Invalid Delete Date
+
         if (walletChange.createdAt == 0) {
             walletChange.createdAt = block.timestamp;
         }
