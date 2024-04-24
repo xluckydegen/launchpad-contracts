@@ -125,6 +125,19 @@ contract TestEchidnaMerkleHelpers is Test {
         assertEq(tokenName, "Token_1");
     }
 
+    function test_setToken() public {
+        MockERC20 currentToken = helpers._token();
+        assertEq(address(currentToken), address(0));
+
+        MockERC20 token = helpers.getToken(0);
+        string memory tokenName = token.name();
+        assertEq(tokenName, "Token_0");
+
+        helpers.setToken(0);
+        MockERC20 newCurrentToken = helpers._token();
+        assertEq(address(newCurrentToken), address(token));
+    }
+
     function test_mintTokensToUser() public {
         // arrange
         MockERC20 token = helpers.getToken(0);
@@ -182,6 +195,7 @@ contract TestEchidnaMerkleHelpers is Test {
         helpers.createUser(1000);
         helpers.createUser(2000);
         helpers.createUser(3000);
+        helpers.setToken(0);
         helpers.enableDistribution(true);
         helpers.storeDistributionData();
     }
