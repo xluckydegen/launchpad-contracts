@@ -43,9 +43,11 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
     DistributionData public currentDistributionData;
     // mappings
     mapping(uint8 _userId => User user) public users;
-    mapping(uint8 _userId => bytes32[] _proof) public usersProofs;
     mapping(uint8 _tokenId => MockERC20 token) public tokens;
-    mapping(bytes32 _merkleRoot => mapping(address _userAddress => uint256 _maxAmount)) public usersByMerkleRoot;
+    mapping(bytes32 _merkleRoot => mapping(address _userAddress => uint256 _maxAmount))
+        public userMaxAmountByMerkleRoot;
+    mapping(bytes32 _merkleRoot => mapping(address _userAddress => bytes32[] _proof))
+        public userProofByMerkleRoot;
 
     event UserCreated(uint8 userId, address userAddress, uint256 maxAmount);
 
@@ -68,7 +70,11 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
         // generate address from the user id
         address newUserAddress = getUserAccount(_newUserId);
         // create new user object
-        User memory newUser = User({ userAddress: newUserAddress, maxAmount: maxAmount, created: true });
+        User memory newUser = User({
+            userAddress: newUserAddress,
+            maxAmount: maxAmount,
+            created: true
+        });
         // add new user to the active distribution
         users[_usersCounter] = newUser;
         // update totals
@@ -179,11 +185,10 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
 
     function _updateUsersProofs(bytes32[] memory _leaves, bytes32 _merkleRoot) internal {
         for (uint8 i; i < _usersCounter; i++) {
-            usersProofs[i] = merkle.getProof(_leaves, i);
-
             address userAddress = users[i].userAddress;
             uint256 userMaxAmount = users[i].maxAmount;
-            usersByMerkleRoot[_merkleRoot][userAddress] = userMaxAmount;
+            userMaxAmountByMerkleRoot[_merkleRoot][userAddress] = userMaxAmount;
+            userProofByMerkleRoot[_merkleRoot][userAddress] = merkle.getProof(_leaves, i);
         }
     }
 
@@ -206,9 +211,12 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
         return users[_userId].maxAmount;
     }
 
-    function getUserProof(uint8 _userId) public view returns (bytes32[] memory) {
-        _userId = _getUserId(_userId);
-        return usersProofs[_userId];
+    function getUserProof(
+        uint8 _userId,
+        bytes32 _merkleRoot
+    ) public view returns (bytes32[] memory) {
+        address _userAddress = getUserAddress(_userId);
+        return userProofByMerkleRoot[_merkleRoot][_userAddress];
     }
 
     function getTokenId(uint8 _tokenId) public view returns (uint8) {
@@ -221,7 +229,10 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
         return currentDistributionData;
     }
 
-    function getUsersMaxAmountByMerkleRoot(bytes32 _merkleRoot, address _userAddress) public returns (uint256) {
-        return usersByMerkleRoot[_merkleRoot][_userAddress];
+    function getUsersMaxAmountByMerkleRoot(
+        bytes32 _merkleRoot,
+        address _userAddress
+    ) public returns (uint256) {
+        return userMaxAmountByMerkleRoot[_merkleRoot][_userAddress];
     }
 }

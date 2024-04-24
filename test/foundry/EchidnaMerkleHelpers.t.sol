@@ -249,7 +249,7 @@ contract TestEchidnaMerkleHelpers is Test {
         string memory distributionUUID = distributionData.uuid;
         // arrange users
         address userAddressOne = helpers.getUserAddress(USER_01_ID);
-        bytes32[] memory userProof = helpers.getUserProof(USER_01_ID);
+        bytes32[] memory userProof = helpers.getUserProof(USER_01_ID, distributionData.merkleRoot);
         //  TEST: no one can claim
         cheats.startPrank(address(userAddressOne));
         cheats.expectRevert(selector_Distribution_NothingToClaim);

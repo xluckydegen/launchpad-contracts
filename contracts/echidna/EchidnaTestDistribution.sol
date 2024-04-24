@@ -20,7 +20,7 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     function testUsersCannotClaimMoreTokensThanMaxAmount() public returns (bool) {
         DistributionData memory _data = _getCurrentDistribution();
         string memory _uuid = _data.uuid;
-        bytes32 _merkleRoot = _data.merkleRoot
+        bytes32 _merkleRoot = _data.merkleRoot;
         for (uint8 i; i < _usersCounter; i++) {
             address userAddress = users[i].userAddress;
             uint256 userMaxAmountByMerkle = getUsersMaxAmountByMerkleRoot(_merkleRoot, userAddress);
@@ -33,17 +33,22 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     // Invariant: User cannot claim when paused
     function testUserCannotClaimWhenPaused(uint8 _userId) public returns (bool) {
         hevm.prank(OWNER);
-        distribution.emergencyDistributionsPause();
-        
-        address userAddress = getUserAddress(_userId);
-        uint256 userMaxAmountByMerkle = getUsersMaxAmountByMerkleRoot(_merkleRoot, userAddress);
-        hevm.prank(userAddress);
-        try distribution.claim(cdistributionUuid, userAddress, userMaxAmountByMerkle) {
+        distribution.emergencyDistributionsPause(true);
+
+        DistributionData memory _data = _getCurrentDistribution();
+
+        address _userAddress = getUserAddress(_userId);
+        bytes32 _merkleRoot = _data.merkleRoot;
+        uint256 _userMaxAmount = getUsersMaxAmountByMerkleRoot(_merkleRoot, _userAddress);
+        bytes32[] memory _userProof = getUserProof(_userId, _merkleRoot);
+        hevm.prank(_userAddress);
+        try distribution.claim(distributionUuid, _userMaxAmount, _userProof) {
             assert(false);
         } catch {
             assert(true);
         }
     }
+
     // Invariant: User cannot claim more tokens proportionally to tokensDistributable
     function testUserCannotClaimMoreTokenProportionallyToTokensDistributable() public {
         // TODO

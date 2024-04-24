@@ -40,14 +40,13 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
     function claim(uint8 _userId) public {
         // distribution
         DistributionData memory currentDistribution = _getCurrentDistribution();
-        string memory uuid = currentDistribution.uuid;
         // user
         address userAddress = getUserAddress(_userId);
         uint256 userMaxAmount = getUserMaxAmount(_userId);
-        bytes32[] memory userProof = getUserProof(_userId);
+        bytes32[] memory userProof = getUserProof(_userId, currentDistribution.merkleRoot);
         // claim
         hevm.prank(userAddress);
-        distribution.claim(uuid, userMaxAmount, userProof);
+        distribution.claim(currentDistribution.uuid, userMaxAmount, userProof);
     }
 
     function pauseDistributions(bool _paused) public {
