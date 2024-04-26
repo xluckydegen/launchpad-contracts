@@ -28,7 +28,7 @@ forge test
 
 ### Run fuzzing campaigns
 
-To spin up Echidna run:
+To spin up Echidna in Docker, run:
 
 ```bash
 sudo docker pull trailofbits/eth-security-toolbox

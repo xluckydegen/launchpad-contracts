@@ -232,7 +232,7 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
     function getUsersMaxAmountByMerkleRoot(
         bytes32 _merkleRoot,
         address _userAddress
-    ) public returns (uint256) {
+    ) public view returns (uint256) {
         return userMaxAmountByMerkleRoot[_merkleRoot][_userAddress];
     }
 }

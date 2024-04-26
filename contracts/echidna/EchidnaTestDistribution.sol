@@ -17,7 +17,7 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     //////////
 
     // Invariant: Users cannot claim more tokens than maxAmount
-    function testUsersCannotClaimMoreTokensThanMaxAmount() public returns (bool) {
+    function testUsersCannotClaimMoreTokensThanMaxAmount() public view {
         DistributionData memory _data = _getCurrentDistribution();
         string memory _uuid = _data.uuid;
         bytes32 _merkleRoot = _data.merkleRoot;
@@ -31,7 +31,7 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     }
 
     // Invariant: User cannot claim when paused
-    function testUserCannotClaimWhenPaused(uint8 _userId) public returns (bool) {
+    function testUserCannotClaimWhenPaused(uint8 _userId) public {
         hevm.prank(OWNER);
         distribution.emergencyDistributionsPause(true);
 
@@ -59,13 +59,13 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     //////////////////
 
     // Invariant: The 'tokensDistributable' must always be less than or equal to 'tokensTotal' for any distribution.
-    function testTokensDistributableLessThanOrEqualToTokensTotal() public returns (bool) {
+    function testTokensDistributableLessThanOrEqualToTokensTotal() public view {
         DistributionData memory _data = _getCurrentDistribution();
         assert(_data.tokensDistributable <= _data.tokensTotal);
     }
 
     // Invariant: The sum of all claimed tokens by individual wallets should never exceed the 'tokensDistributable' in a given distribution.
-    function testClaimedTokensNeverExceedTokensDistributable() public returns (bool) {
+    function testClaimedTokensNeverExceedTokensDistributable() public view {
         DistributionData memory _data = _getCurrentDistribution();
         uint256 totalAmountClaimed;
         for (uint8 i; i < _usersCounter; i++) {
@@ -75,7 +75,7 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     }
 
     // Invariant: The sum of all claimed tokens by individual wallets should never exceed the 'tokensTotal' in a given distribution.
-    function testClaimedTokensNeverExceedTokensTotal() public returns (bool) {
+    function testClaimedTokensNeverExceedTokensTotal() public view {
         DistributionData memory _data = _getCurrentDistribution();
         uint256 totalAmountClaimed;
         for (uint8 i; i < _usersCounter; i++) {
