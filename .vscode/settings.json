@@ -11,12 +11,11 @@
   },
   "mochaExplorer.require": [
     "source-map-support/register",
-		"ts-node/register",
-		"hardhat/register",
+    "ts-node/register",
+    "hardhat/register",
     "./.mocha.js"
   ],
-  "mochaExplorer.files": "./build/test/*.test.js",
-
+  "mochaExplorer.files": "./build/test/**/*.test.js",
   "xmochaExplorer.files1": "./**/*.test.ts",
   "xmochaExplorer.files2": "./test/*.test.ts",
   "xmochaExplorer.files": "./test/**/*.test.ts",
@@ -29,7 +28,7 @@
   "xmochaExplorer.timeout": 40000,
   "xmochaExplorer.esmLoader": false,
   "xmochaExplorer.monkeyPatch": false,
-  "editor.formatOnSave": true, 
+  "editor.formatOnSave": true,
   "[solidity]": {
     "editor.defaultFormatter": "NomicFoundation.hardhat-solidity",
   },
