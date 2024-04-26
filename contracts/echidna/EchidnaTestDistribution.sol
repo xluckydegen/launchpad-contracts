@@ -12,11 +12,11 @@ import { PropertiesAsserts } from "./PropertiesHelpers.sol";
 contract EchidnaTestDistribution is EchidnaHelpers {
     constructor() {}
 
-    //////////
-    // USER //
-    //////////
+    /////////////////////////////////
+    // Claims and Claiming Process //
+    /////////////////////////////////
 
-    // Invariant: Users cannot claim more tokens than maxAmount
+    // 1. Users cannot claim more tokens than their `maxAmount`
     function testUsersCannotClaimMoreTokensThanMaxAmount() public view {
         DistributionData memory _data = _getCurrentDistribution();
         string memory _uuid = _data.uuid;
@@ -30,7 +30,7 @@ contract EchidnaTestDistribution is EchidnaHelpers {
         assert(true);
     }
 
-    // Invariant: User cannot claim when paused
+    // 2. User cannot claim if `enabled` flag in `DistributionData` is set to `true`.
     function testUserCannotClaimWhenPaused(uint8 _userId) public {
         hevm.prank(OWNER);
         distribution.emergencyDistributionsPause(true);
@@ -49,22 +49,38 @@ contract EchidnaTestDistribution is EchidnaHelpers {
         }
     }
 
-    // Invariant: User cannot claim more tokens proportionally to tokensDistributable
+    // 3. User cannot claim more tokens proportionally to `tokensDistributable`
     function testUserCannotClaimMoreTokenProportionallyToTokensDistributable() public {
         // TODO
     }
 
-    //////////////////
-    // DISTRIBUTION //
-    //////////////////
+    // 4. User's token balance must always increase after successful claim.
+    function testUserBalanceMustIncreaseAfterSuccessfulClaim(uint8 _userId) public {
+        DistributionData memory _data = _getCurrentDistribution();
+        MockERC20 _token = MockERC20(_data.token);
+        address _userAddress = getUserAddress(_userId);
+        uint256 _userMaxAmount = getUsersMaxAmountByMerkleRoot(_data.merkleRoot, _userAddress);
+        bytes32[] memory _userProof = getUserProof(_userId, _data.merkleRoot);
+        uint256 _userBalanceBefore = _token.balanceOf(_userAddress);
+        hevm.prank(_userAddress);
+        try distribution.claim(_data.uuid, _userMaxAmount, _userProof) {
+            uint256 _userBalanceAfter = _token.balanceOf(_userAddress);
+            assert (_userBalanceAfter > _userBalanceBefore);
+        } catch {
+            assert(true)
+        }
 
-    // Invariant: The 'tokensDistributable' must always be less than or equal to 'tokensTotal' for any distribution.
+    ////////////////////////////////////////
+    // Token and Distribution Consistency //
+    ////////////////////////////////////////
+
+    // 1. The 'tokensDistributable' must always be less than or equal to 'tokensTotal' for any distribution.
     function testTokensDistributableLessThanOrEqualToTokensTotal() public view {
         DistributionData memory _data = _getCurrentDistribution();
         assert(_data.tokensDistributable <= _data.tokensTotal);
     }
 
-    // Invariant: The sum of all claimed tokens by individual wallets should never exceed the 'tokensDistributable' in a given distribution.
+    // 2. The sum of all claimed tokens by individual wallets should never exceed the 'tokensDistributable' in a given distribution.
     function testClaimedTokensNeverExceedTokensDistributable() public view {
         DistributionData memory _data = _getCurrentDistribution();
         uint256 totalAmountClaimed;
@@ -74,7 +90,7 @@ contract EchidnaTestDistribution is EchidnaHelpers {
         assert(totalAmountClaimed <= _data.tokensDistributable);
     }
 
-    // Invariant: The sum of all claimed tokens by individual wallets should never exceed the 'tokensTotal' in a given distribution.
+    // 3. The sum of all claimed tokens by individual wallets should never exceed the 'tokensTotal' in a given distribution.
     function testClaimedTokensNeverExceedTokensTotal() public view {
         DistributionData memory _data = _getCurrentDistribution();
         uint256 totalAmountClaimed;
@@ -83,4 +99,6 @@ contract EchidnaTestDistribution is EchidnaHelpers {
         }
         assert(totalAmountClaimed <= _data.tokensTotal);
     }
+
+
 }
