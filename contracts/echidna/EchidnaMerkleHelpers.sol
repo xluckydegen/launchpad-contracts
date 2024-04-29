@@ -5,7 +5,7 @@ import { EchidnaSetup } from "./EchidnaSetup.sol";
 import { DistributionData } from "contracts/v2/DistributionV2.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { MockERC20 } from "contracts/echidna/MockERC20.sol";
-import { CompleteMerkle } from "murky/CompleteMerkle.sol";
+import { CompleteMerkle } from "murky/src/CompleteMerkle.sol";
 
 error EchidnaMerkleHelpers__NoUserExists();
 error EchidnaMerkleHelpers__UserDoesNotExist();

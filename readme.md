@@ -39,43 +39,43 @@ To fuzz test
 
 ```bash
 echidna --contract <CONTRACT-NAME> --config /src/echidna-config.yaml /src/contracts/echidna/<CONTRACT-NAME>.sol
+# echidna --contract EchidnaTestDistribution --config echidna-config.yaml contracts/echidna/EchidnaTestDistribution.sol
 ```
 
 ### Invariants
 
 Below is the list of invariants:
 
-#### Claims and Claiming Process
+#### 1. Claims and Claiming Process
 
 - [x] 1. Users cannot claim more tokens than their `maxAmount`
 - [x] 2. User cannot claim if `enabled` flag in `DistributionData` is set to `true`.
 - [ ] 3. User cannot claim more tokens proportionally to `tokensDistributable`. i.e. user's balance after claim must be always equal to the tokens claime.
-- [ ] 4. User's token balance must always increase after successful claim.
-- [ ] ?. The amount claimed by a wallet for a distribution must always be non-negative.
+- [x] 4. User's token balance must always increase after successful claim.
 
-#### Token and Distribution Consistency
+#### 2. Token and Distribution Consistency
 
 - [x] 1. The `tokensDistributable` must always be less than or equal to `tokensTotal` for any distribution.
 - [x] 2. The sum of all claimed tokens by individual wallets should never exceed the `tokensDistributable` in a given distribution.
 - [x] 3. The sum of all claimed tokens by individual wallets should never exceed the `tokensTotal` in a given distribution.
-- [ ] 4. Distribution contract balance of the claiming tokens must not decrease less that amount claimed.
+- [x] 4. Distribution contract balance of the claiming tokens must not decrease less that amount claimed.
   
 #### TODO create a name of the invariants group
 
 - [ ] 1. If tokens in the given distribution were claimed at least once, `merkleRoot`, `tokensTotal`, and `token` cannot be changed anymore.
 - [ ] 2. If tokens deposited into the distribution, token for the given distribution cannot be changed anymore.
 
-#### Role-Based Access Control
+#### 3. Role-Based Access Control
 
 - [ ] 1. Only an account with the `DEFAULT_ADMIN_ROLE` can store a new distribution.
 - [ ] 2. Only an account with the `DISTRIBUTOR_ROLE` can deposit tokens to a distribution.
 
-#### Emergency states
+#### 4. Emergency states
 
-- [ ] 1. Emergency import of claims must cannot be applied if tokens has been already deposited into the distribution.
+- [ ] 1. Emergency import of claims cannot be applied if tokens has been already deposited into the distribution.
 - [ ] 2. The emergency withdraw function should only be callable by an account with the `DEFAULT_ADMIN_ROLE`.
 
-#### User Address Changes
+#### 5. User Address Changes
 
 - [ ] 1. A wallet address must not be redirected to more than one target address at any given time.
 - [ ] 2. Wallet address redirection must not create circular dependencies.
@@ -83,7 +83,7 @@ Below is the list of invariants:
 - [ ] 4. If a wallet address has been redirected through a wallet change, the original address cannot be used for claims.
 - [ ] 5. Any wallet address change must not allow an address to claim more than its entitled/remaining amount.
 
-#### Array and Mapping Integrity"
+#### 6. Array and Mapping Integrity"
 
 - [ ] 1. The length of distributionsIndexed must always match the count of unique distributions stored in the contract.
 - [ ] 2. The length of distributionWalletsClaims[distributionUuid] should always match the number of unique wallet addresses that have made claims against the distributionUuid.

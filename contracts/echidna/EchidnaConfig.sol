@@ -20,7 +20,7 @@ contract EchidnaConfig {
      * @param accountId The ID of the account
      * @return account The address of the account
      */
-    function getUserAccount(uint8 accountId) internal view returns (address account) {
+    function getUserAccount(uint8 accountId) public view returns (address account) {
         accountId = accountId % USER_COUNT;
         // TODO should we also include the OWNER account as a valid user of the protocol?
         if (accountId == 0) return account = ADDRESS_USER_01;
