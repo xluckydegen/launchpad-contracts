@@ -328,11 +328,21 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         return result;
     }
 
-    function getDistributionData(string memory uuid) external view returns (DistributionData memory) {
+    function getDistributionData(
+        string memory uuid
+    ) external view returns (DistributionData memory) {
         return distributions[uuid];
     }
 
     function getWalletClaims(string memory uuid, address wallet) external view returns (uint256) {
         return walletClaims[uuid][wallet];
+    }
+
+    function getAlreadyDeposited(string memory uuid) external view returns (uint256) {
+        return distributionDeposited[uuid];
+    }
+
+    function getAlreadyClaimed(string memory uuid) external view returns (uint256) {
+        return distributionClaimed[uuid];
     }
 }

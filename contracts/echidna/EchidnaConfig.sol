@@ -6,12 +6,10 @@ pragma solidity 0.8.20;
  * @notice inspired by https://github.com/rappie/origindollar-fuzzing-public/blob/main/src/echidna/EchidnaConfig.sol
  */
 contract EchidnaConfig {
-    address internal OWNER = address(0x10000);
-
-    address internal ADDRESS_USER_01 = address(0x20000);
-    address internal ADDRESS_USER_02 = address(0x30000);
-    address internal ADDRESS_USER_03 = address(0x40000);
-    address internal ADDRESS_USER_04 = address(0x50000);
+    address internal ADDRESS_USER_01 = address(0x10000);
+    address internal ADDRESS_USER_02 = address(0x20000);
+    address internal ADDRESS_USER_03 = address(0x30000);
+    address internal ADDRESS_USER_04 = address(0x40000);
 
     uint8 internal USER_COUNT = 4;
 
@@ -22,7 +20,7 @@ contract EchidnaConfig {
      */
     function getUserAccount(uint8 accountId) public view returns (address account) {
         accountId = accountId % USER_COUNT;
-        // TODO should we also include the OWNER account as a valid user of the protocol?
+
         if (accountId == 0) return account = ADDRESS_USER_01;
         if (accountId == 1) return account = ADDRESS_USER_02;
         if (accountId == 2) return account = ADDRESS_USER_03;

@@ -5,18 +5,24 @@ import { Test } from "forge-std/Test.sol";
 import { CheatCodes } from "./Interface.sol";
 import { EchidnaMerkleHelpers } from "contracts/echidna/EchidnaMerkleHelpers.sol";
 import { MockERC20 } from "contracts/echidna/MockERC20.sol";
-import { Distribution, DistributionData } from "contracts/v2/DistributionV2.sol";
+import { Distribution, DistributionData, IERC20 } from "contracts/v2/DistributionV2.sol";
 import { DistributionWalletChange } from "contracts/v2/DistributionWalletChangeV2.sol";
 
-bytes4 constant selector_EchidnaMerkleHelpers_NoUserExists = bytes4(keccak256("EchidnaMerkleHelpers__NoUserExists()"));
+bytes4 constant selector_EchidnaMerkleHelpers_NoUserExists = bytes4(
+    keccak256("EchidnaMerkleHelpers__NoUserExists()")
+);
 bytes4 constant selector_EchidnaMerkleHelpers__UserDoesNotExist = bytes4(
     keccak256("EchidnaMerkleHelpers__UserDoesNotExist()")
 );
 bytes4 constant selector_EchidnaMerkleHelpers__MaxUsersReached = bytes4(
     keccak256("EchidnaMerkleHelpers__MaxUsersReached()")
 );
-bytes4 constant selector_Distribution_NotEnoughTokens = bytes4(keccak256("Distribution__NotEnoughTokens()"));
-bytes4 constant selector_Distribution_NothingToClaim = bytes4(keccak256("Distribution_NothingToClaim()"));
+bytes4 constant selector_Distribution_NotEnoughTokens = bytes4(
+    keccak256("Distribution__NotEnoughTokens()")
+);
+bytes4 constant selector_Distribution_NothingToClaim = bytes4(
+    keccak256("Distribution_NothingToClaim()")
+);
 
 // forge test --match-contract TestEchidnaMerkleHelpers
 contract TestEchidnaMerkleHelpers is Test {
@@ -26,7 +32,7 @@ contract TestEchidnaMerkleHelpers is Test {
     Distribution public distribution;
     DistributionWalletChange public distributionWalletChange;
 
-    address OWNER;
+    // address OWNER;
 
     uint8 USER_01_ID = 0;
     uint8 USER_02_ID = 1;
@@ -39,13 +45,9 @@ contract TestEchidnaMerkleHelpers is Test {
     uint256 USER_04_AMOUNT = 4000;
 
     function setUp() public {
-        OWNER = makeAddr("owner");
-        // deploy distribution as its admin
-        cheats.startPrank(OWNER);
         distributionWalletChange = new DistributionWalletChange();
         distribution = new Distribution(distributionWalletChange);
-        helpers = new EchidnaMerkleHelpers(OWNER, OWNER);
-        cheats.stopPrank();
+        helpers = new EchidnaMerkleHelpers();
     }
 
     function test_initUserCounter() public view {
@@ -223,15 +225,24 @@ contract TestEchidnaMerkleHelpers is Test {
         bytes32 merkleRoot = distributionData.merkleRoot;
 
         address userOneAddress = helpers.getUserAddress(USER_01_ID);
-        uint256 userOneMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(merkleRoot, userOneAddress);
+        uint256 userOneMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(
+            merkleRoot,
+            userOneAddress
+        );
         assertEq(userOneMaxAmount, USER_01_AMOUNT);
 
         address userTwoAddress = helpers.getUserAddress(USER_02_ID);
-        uint256 userTwoMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(merkleRoot, userTwoAddress);
+        uint256 userTwoMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(
+            merkleRoot,
+            userTwoAddress
+        );
         assertEq(userTwoMaxAmount, USER_02_AMOUNT);
 
         address userThreeAddress = helpers.getUserAddress(USER_03_ID);
-        uint256 userThreeMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(merkleRoot, userThreeAddress);
+        uint256 userThreeMaxAmount = helpers.getUsersMaxAmountByMerkleRoot(
+            merkleRoot,
+            userThreeAddress
+        );
         assertEq(userThreeMaxAmount, USER_03_AMOUNT);
     }
 
@@ -244,7 +255,6 @@ contract TestEchidnaMerkleHelpers is Test {
         DistributionData memory distributionData = helpers.getCurrentDistributionData();
         MockERC20 token = helpers.tokens(0);
         // store new distribution
-        cheats.prank(OWNER);
         distribution.storeDistribution(distributionData);
         string memory distributionUUID = distributionData.uuid;
         // arrange users
@@ -258,16 +268,17 @@ contract TestEchidnaMerkleHelpers is Test {
         // TEST: successful claim
         // mint tokens to distributor
         helpers.mintTokenToDistributor(0, distributionData.tokensTotal);
-        uint256 adminBalance = token.balanceOf(OWNER);
+        cheats.prank(address(helpers));
+        token.transfer(address(this), distributionData.tokensTotal);
+        uint256 adminBalance = token.balanceOf(address(this));
         assertEq(adminBalance, distributionData.tokensTotal);
         // adjust distribution data
         distributionData.tokensDistributable = distributionData.tokensTotal;
         // store changed distribution data
-        cheats.startPrank(OWNER);
         distribution.storeDistribution(distributionData);
         token.approve(address(distribution), distributionData.tokensTotal);
         distribution.depositTokensToDistribution(distributionUUID, distributionData.tokensTotal);
-        cheats.stopPrank();
+
         // user claim
         cheats.prank(userAddressOne);
         distribution.claim(distributionUUID, 1000, userProof);

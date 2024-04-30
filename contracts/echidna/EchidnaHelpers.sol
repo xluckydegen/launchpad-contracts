@@ -1,16 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import { Distribution, DistributionData } from "contracts/v2/DistributionV2.sol";
+import {
+    Distribution,
+    DistributionData,
+    DistributionImportRecord
+} from "contracts/v2/DistributionV2.sol";
 import {
     DistributionWalletChange,
     WalletChangeData
 } from "contracts/v2/DistributionWalletChangeV2.sol";
 import { EchidnaMerkleHelpers } from "./EchidnaMerkleHelpers.sol";
 import { PropertiesLibString } from "./PropertiesHelpers.sol";
+import { MockERC20 } from "./MockERC20.sol";
+import { Debugger } from "./Debugger.sol";
 
 error EchidnaHelpers__FromEqualsTo();
 error EchidnaHelpers__NoWalletChanges();
+error EchidnaHelpers__NoDistributionUuid();
+error EchidnaHelpers__TooLowTokensDistributable();
 
 /**
  * @title Helpers of distribution contract
@@ -24,13 +32,8 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
 
     string[] public walletChangesUuids;
 
-    event Debug(address from, address to);
-
-    constructor() EchidnaMerkleHelpers(OWNER, OWNER) {
-        // deploy contracts on behalf of the owner
-        hevm.prank(OWNER);
+    constructor() {
         distributionWalletChange = new DistributionWalletChange();
-        hevm.prank(OWNER);
         distribution = new Distribution(distributionWalletChange);
     }
 
@@ -39,36 +42,69 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
     //////////////////////////
 
     function storeDistribution() public {
-        hevm.prank(OWNER);
         distribution.storeDistribution(currentDistributionData);
+        // Debugging part (also to double-check if Echidna goes through this part)
+        DistributionData memory currDistroData = getCurrentDistribution();
+        Debugger.log("uuid", currDistroData.uuid);
+        Debugger.log("address(token)", address(currDistroData.token));
+        Debugger.log("tokensTotal", currDistroData.tokensTotal);
+        Debugger.log("tokensDistributable", currDistroData.tokensDistributable);
+        Debugger.log("merkleRoot", currDistroData.merkleRoot);
+        Debugger.log("enabled", currDistroData.enabled);
     }
 
-    function depositTokensToDistribution(uint256 _amount) public {
+    function depositTokensToDistribution(uint256 amountToDeposit) public {
         // get current distribution stored
-        DistributionData memory distributionData = _getCurrentDistribution();
-        string memory distributionUuid = distributionData.uuid;
-        // mint tokens to distributor to be sure depositor has enough tokens
-        mintTokenToDistributor(_currentTokenId, _amount);
+        DistributionData memory currDistroData = getCurrentDistribution();
+        // validate uuid
+        string memory currentDistributionUuid = currDistroData.uuid;
+        if (bytes(currentDistributionUuid).length == 0) {
+            revert EchidnaHelpers__NoDistributionUuid();
+        }
+        // validate `_amount`
+        uint256 alreadyDeposited = distribution.getAlreadyDeposited(currentDistributionUuid);
+        if (currDistroData.tokensDistributable < alreadyDeposited + amountToDeposit) {
+            revert EchidnaHelpers__TooLowTokensDistributable();
+        }
+        // mint tokens to a distributor to be sure the depositor has enough tokens
+        MockERC20(address(currDistroData.token)).mint(address(this), amountToDeposit);
+        // approve token
+        currDistroData.token.approve(address(distribution), amountToDeposit);
+        uint256 distrBalanceBefore = currDistroData.token.balanceOf(address(distribution));
+        // deposit token
+        distribution.depositTokensToDistribution(currentDistributionUuid, amountToDeposit);
+        uint256 distrBalanceAfter = currDistroData.token.balanceOf(address(distribution));
 
-        hevm.prank(OWNER);
-        distribution.depositTokensToDistribution(distributionUuid, _amount);
+        Debugger.log("amountToDeposit", amountToDeposit);
+        Debugger.log("distrBalanceBefore", distrBalanceBefore);
+        Debugger.log("distrBalanceAfter", distrBalanceAfter);
     }
 
     function claim(uint8 _userId) public {
         // distribution
-        DistributionData memory currentDistribution = _getCurrentDistribution();
+        DistributionData memory currentDistribution = getCurrentDistribution();
         // user
         address userAddress = getUserAddress(_userId);
         uint256 userMaxAmount = getUserMaxAmount(_userId);
         bytes32[] memory userProof = getUserProof(_userId, currentDistribution.merkleRoot);
+        uint256 userBalanceBefore = currentDistribution.token.balanceOf(userAddress);
         // claim
         hevm.prank(userAddress);
         distribution.claim(currentDistribution.uuid, userMaxAmount, userProof);
+        // debugging and logging
+        uint256 userBalanceAfter = currentDistribution.token.balanceOf(userAddress);
+        Debugger.log("userAddress", userAddress);
+        Debugger.log("userMaxAmount", userMaxAmount);
+        Debugger.log("userBalanceBefore", userBalanceBefore);
+        Debugger.log("userBalanceAfter", userBalanceAfter);
     }
 
     function pauseDistributions(bool _paused) public {
-        hevm.prank(OWNER);
         distribution.emergencyDistributionsPause(_paused);
+        // debugging and logging
+        DistributionData memory currDistroData = getCurrentDistribution();
+        Debugger.log("_paused", _paused);
+        Debugger.log("currDistroData.enabled", currDistroData.enabled);
     }
 
     //////////////////////////////////////
@@ -77,8 +113,17 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
 
     function storeWalletChange(uint8 _userIdFrom, uint8 _userIdTo) public {
         WalletChangeData memory _data = createWalletChangeData(_userIdFrom, _userIdTo);
-        hevm.prank(OWNER);
         distributionWalletChange.storeWalletChange(_data);
+
+        // debugging and logging
+        Debugger.log("_data.uuid", _data.uuid);
+        Debugger.log("_data.walletFrom", _data.walletFrom);
+        Debugger.log("_data.walletTo", _data.walletTo);
+
+        address walletFromTo = getWalletFromTo(_data.walletFrom);
+        address walletToTo = getWalletFromTo(_data.walletTo);
+        Debugger.log("walletFromTo", walletFromTo);
+        Debugger.log("walletToTo", walletToTo);
     }
 
     function removeWalletChange(uint256 _num) public {
@@ -86,8 +131,14 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
         if (_totalChanges == 0) revert EchidnaHelpers__NoWalletChanges();
         uint256 num = _num % _totalChanges;
         string memory _walletChangeUuid = walletChangesUuids[num];
-        hevm.prank(OWNER);
         distributionWalletChange.removeWalletChange(_walletChangeUuid);
+
+        // debugging and logging
+        WalletChangeData memory _data = getWalletChange(_walletChangeUuid);
+        address walletFromTo = getWalletFromTo(_data.walletFrom);
+        address walletToTo = getWalletFromTo(_data.walletTo);
+        Debugger.log("walletFromTo", walletFromTo);
+        Debugger.log("walletToTo", walletToTo);
     }
 
     function createWalletChangeData(
@@ -95,7 +146,6 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
         uint8 _userIdTo
     ) public returns (WalletChangeData memory) {
         address _from = getUserAccount(_userIdFrom);
-        // TODO check if 'from' address exists in merkle tree, otherwise revert?
         address _to = getUserAccount(_userIdTo);
         if (_from == _to) revert EchidnaHelpers__FromEqualsTo();
         string memory _walletChangeUuid = PropertiesLibString.toString(_from);
@@ -123,19 +173,19 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
 
     function getWalletChange(
         string memory walletChangeUuid
-    ) external view returns (WalletChangeData memory) {
+    ) public view returns (WalletChangeData memory) {
         return distributionWalletChange.getWalletChange(walletChangeUuid);
     }
 
-    function getWalletFromTo(address _from) external view returns (address _to) {
+    function getWalletFromTo(address _from) public view returns (address _to) {
         return distributionWalletChange.getWalletFromTo(_from);
     }
 
-    function getWalletToFrom(address _to) external view returns (address _from) {
+    function getWalletToFrom(address _to) public view returns (address _from) {
         return distributionWalletChange.getWalletToFrom(_to);
     }
 
-    function _getCurrentDistribution() internal view returns (DistributionData memory) {
+    function getCurrentDistribution() public view returns (DistributionData memory) {
         return distribution.getDistributionData(distributionUuid);
     }
 

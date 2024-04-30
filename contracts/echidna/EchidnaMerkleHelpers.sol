@@ -24,9 +24,6 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
 
     CompleteMerkle public merkle;
 
-    address public defaultAdmin;
-    address public distributor;
-
     // counters and helper vars
     uint8 public _usersCounter;
     uint8 public _tokensCounter;
@@ -51,12 +48,8 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
 
     event UserCreated(uint8 userId, address userAddress, uint256 maxAmount);
 
-    constructor(address _defaultAdmin, address _distributor) {
+    constructor() {
         merkle = new CompleteMerkle();
-
-        defaultAdmin = _defaultAdmin;
-        distributor = _distributor;
-
         createNewToken();
     }
 
@@ -129,16 +122,10 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
         tokens[_tokenId].mint(to, amount);
     }
 
-    function mintTokenToAdmin(uint8 _tokenId, uint256 amount) public {
-        if (_tokensCounter == 0) revert EchidnaMerkleHelpers__NoTokenExists();
-        _tokenId = _tokenId % _tokensCounter;
-        tokens[_tokenId].mint(defaultAdmin, amount);
-    }
-
     function mintTokenToDistributor(uint8 _tokenId, uint256 amount) public {
         if (_tokensCounter == 0) revert EchidnaMerkleHelpers__NoTokenExists();
         _tokenId = _tokenId % _tokensCounter;
-        tokens[_tokenId].mint(distributor, amount);
+        tokens[_tokenId].mint(address(this), amount);
     }
 
     function setTokensDistributable(uint256 amount) public {

@@ -1,4 +1,4 @@
-# Moonhill Launchpad Contracts
+# Launchpad Contracts
 
 ## Installation
 
@@ -28,6 +28,26 @@ forge test
 
 ### Run fuzzing campaigns
 
+---
+
+📢⚠️ **Before running fuzz tests uncomment:**
+
+```solidity
+// constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+```
+
+and comment out:
+
+```solidity
+constructor(string memory name, string memory symbol) ERC20(name, symbol) Ownable(msg.sender) {}
+```
+
+out in [MockERC20](./contracts/echidna/MockERC20.sol).
+
+This is necessary due to **hardhat/foundry incompatibility issues**. 📢⚠️
+
+---
+
 To spin up Echidna in Docker, run:
 
 ```bash
@@ -44,14 +64,21 @@ echidna --contract <CONTRACT-NAME> --config /src/echidna-config.yaml /src/contra
 
 ### Invariants
 
+#### Assumptions, simplifications
+
+1. Currently we do not aim to fuzz multiple distributions running simultaneously (to simplify fuzzing process for now).
+2. Regarding to the point 1, we do not fuzz multiple claims at once, i.e. `claimMultiple` in [Distribution](./contracts/v2/DistributionV2.sol).
+3. `emergencyImportClaims` needs to be as flexible as possible for unexpected emergency situation, thus it is not the subject of fuzzing campaign.
+
 Below is the list of invariants:
 
 #### 1. Claims and Claiming Process
 
 - [x] 1. Users cannot claim more tokens than their `maxAmount`
 - [x] 2. User cannot claim if `enabled` flag in `DistributionData` is set to `true`.
-- [ ] 3. User cannot claim more tokens proportionally to `tokensDistributable`. i.e. user's balance after claim must be always equal to the tokens claime.
+- [ ] 3. User cannot claim more tokens proportionally to `tokensDistributable`. i.e. user's balance after claim must be always equal to the tokens claimable in the given round.
 - [x] 4. User's token balance must always increase after successful claim.
+- [x] 5. Distribution's token balance must always decrease after successful claim.
 
 #### 2. Token and Distribution Consistency
 
@@ -85,32 +112,11 @@ Below is the list of invariants:
 
 #### 6. Array and Mapping Integrity"
 
-- [ ] 1. The length of distributionsIndexed must always match the count of unique distributions stored in the contract.
-- [ ] 2. The length of distributionWalletsClaims[distributionUuid] should always match the number of unique wallet addresses that have made claims against the distributionUuid.
-- [ ] 3. The walletClaims mapping should accurately reflect the amount of tokens claimed by each wallet for a given distribution.
-- [ ] 4. The amount of tokens deposited for a distribution must always match the tracked amount in distributionDeposited.
+- [ ] 1. The length of `distributionsIndexed` must always match the count of unique distributions stored in the contract.
+- [ ] 2. The length of `distributionWalletsClaims[distributionUuid]` should always match the number of unique wallet addresses that have made claims against the `distributionUuid`.
+- [ ] 3. The `walletClaims` mapping should accurately reflect the amount of tokens claimed by each wallet for a given distribution.
+- [ ] 4. The amount of tokens deposited for a distribution must always match the tracked amount in `distributionDeposited`.
 - [ ] 5. The sum of claimed amounts for a wallet across all distributions must match the total claims recorded for that wallet.
-
-### Assumptions, simplifications
-
-1. Currently we do not aim to fuzz multiple distributions running simultaneously (to simplify fuzzing process for now).
-2. Regarding to the point 1, we do not fuzz multiple claims at once.
-
-
-### To Be Resolved
-
-- [ ] Should also be the owner of the contract considered as a valid user account (see [EchidnaConfig](./contracts/echidna/EchidnaConfig.sol)) and hence be included into the Merkle related operations?
-- [ ] 
-- [ ] Prefer Assertion testing mode over Properties? 
-
-### TODO
-
-- [ ] Fuzz multiple distributions running;
-- [ ] Fuzz Emergency cases;
-  - [ ] `emergencyTokenWithdraw`
-  - [ ] `emergencyEthWithdraw`
-  - [ ] `emergencyImportClaims`
-- [ ] Fuzz DistributionWalletChange;
 
 ## Links
 

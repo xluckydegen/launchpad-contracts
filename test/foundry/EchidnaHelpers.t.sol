@@ -2,14 +2,16 @@
 pragma solidity 0.8.20;
 
 import { Test } from "forge-std/Test.sol";
+import { CheatCodes } from "./Interface.sol";
 import { EchidnaHelpers } from "contracts/echidna/EchidnaHelpers.sol";
 import { WalletChangeData } from "contracts/v2/DistributionWalletChangeV2.sol";
 import { PropertiesLibString } from "contracts/echidna/PropertiesHelpers.sol";
+import { Distribution, DistributionData, IERC20 } from "contracts/v2/DistributionV2.sol";
+import { DistributionWalletChange } from "contracts/v2/DistributionWalletChangeV2.sol";
 
 contract TestEchidnaHelpers is Test {
     EchidnaHelpers helpers;
-
-    address internal OWNER = address(0x10000);
+    CheatCodes cheats = CheatCodes(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     uint8 USER_01_ID = 0;
     uint8 USER_02_ID = 1;
@@ -24,13 +26,6 @@ contract TestEchidnaHelpers is Test {
     function setUp() public {
         helpers = new EchidnaHelpers();
     }
-
-    function testRoles() public view {
-        assertEq(helpers.hasAdminRole(OWNER), true);
-        assertEq(helpers.hasDistributorRole(OWNER), true);
-    }
-
-    // DistributionWalletChange helpers //
 
     function testStoreWalletChange() public {
         // add wallet change
@@ -53,5 +48,24 @@ contract TestEchidnaHelpers is Test {
         assertEq(helpers.getWalletFromTo(_userOneAddress), address(0));
         assertEq(helpers.getWalletToFrom(_userTwoAddress), address(0));
         assertTrue(_walletChangeAfterRemoval.deletedAt != 0);
+    }
+
+    function test_validateDistributionData() public {
+        helpers.createUser(USER_01_AMOUNT);
+        helpers.createUser(USER_02_AMOUNT);
+        helpers.createUser(USER_03_AMOUNT);
+        helpers.setToken(0);
+        helpers.enableDistribution(true);
+        helpers.storeDistributionData();
+        helpers.storeDistribution();
+
+        DistributionData memory _currentDistribution = helpers.getCurrentDistribution();
+
+        assertFalse(address(_currentDistribution.token) == address(0));
+        IERC20 _token = _currentDistribution.token;
+
+        address _userOneAddress = helpers.getUserAccount(USER_01_ID);
+        uint256 _userBalance = _token.balanceOf(address(_userOneAddress));
+        assertEq(_userBalance, 0);
     }
 }
