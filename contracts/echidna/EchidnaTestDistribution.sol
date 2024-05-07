@@ -157,10 +157,45 @@ contract EchidnaTestDistribution is EchidnaHelpers {
     ////////////////////////////////////////
 
     // 2.1. The 'tokensDistributable' must always be less than or equal to 'tokensTotal' for any distribution.
+    function tokensDistributableLteTokensTotal() public {
+        DistributionData memory _data = getCurrentDistribution();
+
+        Debugger.log("_data.tokensDistributable", _data.tokensDistributable);
+        Debugger.log("_data.tokensTotal", _data.tokensTotal);
+
+        assert(_data.tokensDistributable <= _data.tokensTotal);
+    }
+
     // 2.2. The sum of all claimed tokens by individual wallets should never exceed the 'tokensDistributable' in a given distribution.
+    function totalAmountClaimedLteTokensDistributable() public {
+        DistributionData memory _data = getCurrentDistribution();
+        // sum all claimed tokens by users
+        uint256 totalAmountClaimed;
+        for (uint8 i; i < _usersCounter; i++) {
+            totalAmountClaimed += _getAmountClaimedByUser(i);
+        }
+        Debugger.log("_data.tokensDistributable", _data.tokensDistributable);
+        Debugger.log("totalAmountClaimed", totalAmountClaimed);
+
+        assert(totalAmountClaimed <= _data.tokensDistributable);
+    }
+
     // 2.3. The sum of all claimed tokens by individual wallets should never exceed the 'tokensTotal' in a given distribution.
+    function totalAmountClaimedLteTokensTotal() public {
+        DistributionData memory _data = getCurrentDistribution();
+        // sum all claimed tokens by users
+        uint256 totalAmountClaimed;
+        for (uint8 i; i < _usersCounter; i++) {
+            totalAmountClaimed += _getAmountClaimedByUser(i);
+        }
+        Debugger.log("_data.tokensTotal", _data.tokensTotal);
+        Debugger.log("totalAmountClaimed", totalAmountClaimed);
+
+        assert(totalAmountClaimed <= _data.tokensTotal);
+    }
+
     // 2.4. The sum of all claimed tokens by individual wallets must be equal to 'distributionClaimed[uuid]' in a given distribution.
-    function claimedTokensNeverExceedTokensDistributable() public {
+    function totalAmountClaimedEqualsAlreadyClaimedTotal() public {
         DistributionData memory _data = getCurrentDistribution();
         uint256 alreadyClaimedTotal = distribution.getAlreadyClaimed(_data.uuid);
         // sum all claimed tokens by users
@@ -168,14 +203,9 @@ contract EchidnaTestDistribution is EchidnaHelpers {
         for (uint8 i; i < _usersCounter; i++) {
             totalAmountClaimed += _getAmountClaimedByUser(i);
         }
-        Debugger.log("_data.tokensDistributable", _data.tokensDistributable);
-        Debugger.log("_data.tokensTotal", _data.tokensTotal);
         Debugger.log("totalAmountClaimed", totalAmountClaimed);
         Debugger.log("alreadyClaimedTotal", alreadyClaimedTotal);
 
-        assert(_data.tokensDistributable <= _data.tokensTotal);
-        assert(totalAmountClaimed <= _data.tokensDistributable);
-        assert(totalAmountClaimed <= _data.tokensTotal);
         assert(totalAmountClaimed == alreadyClaimedTotal);
     }
 }
