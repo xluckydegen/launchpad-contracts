@@ -115,7 +115,7 @@ describe("App/V2/Distribution/Basics", function ()
       walletAmount1: Number(values[0][1]),
       walletAmount2: Number(values[1][1]),
       walletAmount3: Number(values[2][1]),
-    }
+    };
   }
 
   it("merkle tree fixture", async () =>
@@ -130,6 +130,9 @@ describe("App/V2/Distribution/Basics", function ()
 
     const count = await fixt.contractDistribution.distributionsCount();
     expect(count).eq(0);
+
+    const states = await fixt.contractDistribution.distributionsStateArray(0);
+    expect(states.length).eq(0);
   });
 
   it("register Distribution", async () =>
@@ -146,6 +149,13 @@ describe("App/V2/Distribution/Basics", function ()
 
     const count = await fixt.contractDistribution.distributionsCount();
     expect(count).eq(1);
+
+    const states = await fixt.contractDistribution.distributionsStateArray(0);
+    expect(states.length).eq(1);
+    expect(states[0].uuid).eq(distributionInitial.uuid);
+    expect(states[0].deposited).eq(0);
+    expect(states[0].claimed).eq(0);
+    expect(states[0].claimsCount).eq(0);
   });
 
   it("get Distribution", async () =>
@@ -209,6 +219,13 @@ describe("App/V2/Distribution/Basics", function ()
     expect(distributionFromContract2.tokensTotal).eq(distributionInitial.tokensTotal);
     expect(distributionFromContract2.merkleRoot).eq(distributionInitial.merkleRoot);
     expect(distributionFromContract2.enabled).eq(distributionInitial.enabled);
+
+    const states = await fixt.contractDistribution.distributionsStateArray(0);
+    expect(states.length).eq(1);
+    expect(states[0].uuid).eq(distributionInitial.uuid);
+    expect(states[0].deposited).eq(0);
+    expect(states[0].claimed).eq(0);
+    expect(states[0].claimsCount).eq(0);
   });
 
   it("deposit Distribution", async () =>
@@ -231,6 +248,16 @@ describe("App/V2/Distribution/Basics", function ()
 
     const deposited = await fixt.contractDistribution.distributionDeposited(distributionInitial.uuid);
     expect(deposited).eq(1_000_000);
+
+    const states = await fixt.contractDistribution.distributionsStateArray(0);
+    expect(states.length).eq(1);
+    expect(states[0].uuid).eq(distributionInitial.uuid);
+    expect(states[0].deposited).eq(1_000_000);
+    expect(states[0].claimed).eq(0);
+    expect(states[0].claimsCount).eq(0);
+
+    const states2 = await fixt.contractDistribution.distributionsStateArray(states[0].lastChangedAt+1n);
+    expect(states2.length).eq(0);
   });
 
   it("deposit Distribution multiple", async () =>
@@ -511,7 +538,7 @@ describe("App/V2/Distribution/Basics", function ()
     );
 
     const balanceWalletAfter = await fixt.tokenUSDC1.balanceOf(fixt.wallet1.address);
-    const expectedBalance = Math.floor(fixt.merkleTree.walletAmount1 * ratioClaim)
+    const expectedBalance = Math.floor(fixt.merkleTree.walletAmount1 * ratioClaim);
     expect(balanceWalletAfter).eq(expectedBalance);
   });
 
@@ -595,7 +622,7 @@ describe("App/V2/Distribution/Basics", function ()
       distributionInitial.uuid,
       fixt.merkleTree.walletAmount1,
       fixt.merkleTree.walletProof1
-    )
+    );
 
     const alreadyClaimedAfter = await fixt.contractDistribution.walletClaims(distributionInitial.uuid, fixt.wallet1.address);
     expect(alreadyClaimedAfter).eq(fixt.merkleTree.walletAmount1);
