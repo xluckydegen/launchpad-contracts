@@ -103,7 +103,7 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     //events
     event DistributionStored(string uuid);
     event DistributionDeposited(string uuid, uint256 amount);
-    event DistributionClaimed(string uuid, address wallet, uint256 amount);
+    event DistributionClaimed(string uuid, address wallet, uint256 amount, uint256 amountTotal);
 
     bytes32 public constant DISTRIBUTOR_ROLE = keccak256("DISTRIBUTOR");
 
@@ -159,10 +159,10 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         }
         distributions[distribution.uuid] = distribution;
 
-        emit DistributionStored(distribution.uuid);
-
         distributionLastChangeAt[distribution.uuid] = block.timestamp;
         lastChangeAt = block.timestamp;
+
+        emit DistributionStored(distribution.uuid);
     }
 
     //deposit tokens to distribution
@@ -261,7 +261,8 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         // TRANSFER
         token.safeTransfer(msg.sender, amountToClaim);
 
-        emit DistributionClaimed(distributionUuid, claimingAddress, amountToClaim);
+        uint256 claimedTotal = walletClaims[distributionUuid][claimingAddress];
+        emit DistributionClaimed(distributionUuid, claimingAddress, amountToClaim, claimedTotal);
     }
 
     function emergencyImportClaims(
@@ -302,9 +303,8 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         uint256 changedFrom
     ) external view returns (DistributionState[] memory) {
         uint256 records = 0;
-        for (uint256 ix = 0; ix < distributionsIndexed.length; ix++) {
+        for (uint256 ix = 0; ix < distributionsIndexed.length; ix++)
             if (distributionLastChangeAt[distributionsIndexed[ix]] > changedFrom) records++;
-        }
 
         DistributionState[] memory result = new DistributionState[](records);
         if (records == 0) return result;
@@ -313,11 +313,11 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         for (uint256 ix = 0; ix < distributionsIndexed.length; ix++) {
             string memory uuid = distributionsIndexed[ix];
             if (distributionLastChangeAt[uuid] > changedFrom) {
-                result[ix].uuid = uuid;
-                result[ix].lastChangedAt = distributionLastChangeAt[uuid];
-                result[ix].deposited = distributionDeposited[uuid];
-                result[ix].claimed = distributionClaimed[uuid];
-                result[ix].claimsCount = distributionWalletsClaims[uuid].length;
+                result[records].uuid = uuid;
+                result[records].lastChangedAt = distributionLastChangeAt[uuid];
+                result[records].deposited = distributionDeposited[uuid];
+                result[records].claimed = distributionClaimed[uuid];
+                result[records].claimsCount = distributionWalletsClaims[uuid].length;
                 records++;
             }
         }
