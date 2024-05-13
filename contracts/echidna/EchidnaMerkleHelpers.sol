@@ -25,8 +25,7 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
     }
 
     CompleteMerkle public merkle;
-    // to have realistic distribution amounts
-    uint256 public MIN_REQUIRED_AMOUNT = 500;
+    
     // counters and helper vars
     uint8 public _usersCounter;
     uint8 public _tokensCounter;
