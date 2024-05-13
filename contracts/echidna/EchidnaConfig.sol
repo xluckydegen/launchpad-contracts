@@ -13,6 +13,10 @@ contract EchidnaConfig {
 
     uint8 internal USER_COUNT = 4;
 
+    // to keep a user's `maxAmount` realistic, setting 'MAX_AMOUNT_MODULO' and 'MIN_DEPOSIT_AMOUNT'
+    uint256 internal MAX_AMOUNT_MODULO = 1_000_000_000_000;
+    uint256 internal MIN_REQUIRED_AMOUNT = 500;
+
     /**
      * @notice Translate an account ID to an address
      * @param accountId The ID of the account

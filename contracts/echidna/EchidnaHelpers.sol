@@ -19,6 +19,7 @@ error EchidnaHelpers__FromEqualsTo();
 error EchidnaHelpers__NoWalletChanges();
 error EchidnaHelpers__NoDistributionUuid();
 error EchidnaHelpers__TooLowTokensDistributable();
+// error EchidnaHelpers__TooLowAmount();
 
 /**
  * @title Helpers of distribution contract
@@ -54,6 +55,10 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
     }
 
     function depositTokensToDistribution(uint256 amountToDeposit) public {
+        // // rounding error
+        // if (amountToDeposit <= MIN_DEPOSIT_AMOUNT) {
+        //     revert EchidnaHelpers__TooLowAmount();
+        // }
         // get current distribution stored
         DistributionData memory currDistroData = getCurrentDistribution();
         // validate uuid
@@ -86,7 +91,7 @@ contract EchidnaHelpers is EchidnaMerkleHelpers {
         // user
         address userAddress = getUserAddress(_userId);
         uint256 userMaxAmount = getUserMaxAmount(_userId);
-        bytes32[] memory userProof = getUserProof(_userId, currentDistribution.merkleRoot);
+        bytes32[] memory userProof = getUserProofByUserId(_userId, currentDistribution.merkleRoot);
         uint256 userBalanceBefore = currentDistribution.token.balanceOf(userAddress);
         // claim
         hevm.prank(userAddress);

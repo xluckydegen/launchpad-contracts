@@ -11,6 +11,8 @@ error EchidnaMerkleHelpers__NoUserExists();
 error EchidnaMerkleHelpers__UserDoesNotExist();
 error EchidnaMerkleHelpers__MaxUsersReached();
 error EchidnaMerkleHelpers__NoTokenExists();
+error EchidnaMerkleHelpers__ZeroAmount();
+error EchidnaMerkleHelpers__TooSmallAmount();
 
 /// @title Echidna Merkle Helpers
 /// @notice EchidnaMerkleHelpers serves to substitute the process of Distribution Data Generation which is an off-chain process
@@ -23,7 +25,8 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
     }
 
     CompleteMerkle public merkle;
-
+    // to have realistic distribution amounts
+    uint256 public MIN_REQUIRED_AMOUNT = 500;
     // counters and helper vars
     uint8 public _usersCounter;
     uint8 public _tokensCounter;
@@ -47,6 +50,7 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
         public userProofByMerkleRoot;
 
     event UserCreated(uint8 userId, address userAddress, uint256 maxAmount);
+    event UserProof(address user, bytes32[] proof);
 
     constructor() {
         merkle = new CompleteMerkle();
@@ -58,7 +62,11 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
      * @dev once USER_COUNT is reached, now users can't be created anymore
      */
     function createUser(uint256 maxAmount) public {
+        if (maxAmount == 0) revert EchidnaMerkleHelpers__ZeroAmount();
         if (_usersCounter == USER_COUNT) revert EchidnaMerkleHelpers__MaxUsersReached();
+        if (maxAmount <= MIN_REQUIRED_AMOUNT) revert EchidnaMerkleHelpers__TooSmallAmount();
+        // limiting the max amount to stay in realistic range (=one user will not get uint256.max tokens of the project)
+        maxAmount = maxAmount % MAX_AMOUNT_MODULO;
         uint8 _newUserId = _usersCounter;
         // generate address from the user id
         address newUserAddress = getUserAccount(_newUserId);
@@ -175,7 +183,10 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
             address userAddress = users[i].userAddress;
             uint256 userMaxAmount = users[i].maxAmount;
             userMaxAmountByMerkleRoot[_merkleRoot][userAddress] = userMaxAmount;
-            userProofByMerkleRoot[_merkleRoot][userAddress] = merkle.getProof(_leaves, i);
+            bytes32[] memory userProof = merkle.getProof(_leaves, i);
+            userProofByMerkleRoot[_merkleRoot][userAddress] = userProof;
+
+            emit UserProof(userAddress, userProof);
         }
     }
 
@@ -198,12 +209,23 @@ contract EchidnaMerkleHelpers is EchidnaSetup {
         return users[_userId].maxAmount;
     }
 
-    function getUserProof(
+    function getUserProofByUserId(
         uint8 _userId,
         bytes32 _merkleRoot
-    ) public view returns (bytes32[] memory) {
+    ) public returns (bytes32[] memory) {
         address _userAddress = getUserAddress(_userId);
+        bytes32[] memory userProof = userProofByMerkleRoot[_merkleRoot][_userAddress];
+        emit UserProof(_userAddress, userProof);
         return userProofByMerkleRoot[_merkleRoot][_userAddress];
+    }
+
+    function getUserProofByUserAddress(
+        address _userAddress,
+        bytes32 _merkleRoot
+    ) public returns (bytes32[] memory) {
+        bytes32[] memory userProof = userProofByMerkleRoot[_merkleRoot][_userAddress];
+        emit UserProof(_userAddress, userProof);
+        return userProof;
     }
 
     function getTokenId(uint8 _tokenId) public view returns (uint8) {

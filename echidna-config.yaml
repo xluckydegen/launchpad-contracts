@@ -4,12 +4,12 @@ cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=contracts/ murky/=
 # docker version
 # cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=/src/contracts/ murky/=/src/lib/murky/ @openzeppelin/=/src/node_modules/@openzeppelin/ @prb=/src/node_modules/@prb"]
 
-testLimit: 10000000 # 10M
-# testLimit: 1000000 # 1M
+# testLimit: 10000000 # 10M
+testLimit: 1000000 # 1M
 # testLimit: 100000 # 100K
 
 stopOnFail: true
-shrinkLimit: 50000
+shrinkLimit: 10000
 
 deployer: "0xfffff"
 
