@@ -19,7 +19,6 @@ error EchidnaHelpers__FromEqualsTo();
 error EchidnaHelpers__NoWalletChanges();
 error EchidnaHelpers__NoDistributionUuid();
 error EchidnaHelpers__TooLowTokensDistributable();
-// error EchidnaHelpers__TooLowAmount();
 
 /**
  * @title Helpers of distribution contract

@@ -133,11 +133,13 @@ contract DistributionWalletChange is
         return walletChanges[uuid];
     }
 
-    function getWalletFromTo(address walletFrom) public view returns (address) {
-        return walletChangesFromTo[walletFrom];
+    /// @notice get the address of the new wallet  (i.e., address which was redirected to) by the original address
+    function getWalletFromTo(address originalWallet) public view returns (address) {
+        return walletChangesFromTo[originalWallet];
     }
 
-    function getWalletToFrom(address walletTo) public view returns (address) {
-        return walletChangesToFrom[walletTo];
+    /// @notice get the address of the original wallet (i.e., address which was redirected from) by the new address
+    function getWalletToFrom(address newWallet) public view returns (address) {
+        return walletChangesToFrom[newWallet];
     }
 }

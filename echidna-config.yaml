@@ -6,6 +6,7 @@ cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=contracts/ murky/=
 
 # testLimit: 10000000 # 10M
 testLimit: 1000000 # 1M
+# testLimit: 500000 # 500K
 # testLimit: 100000 # 100K
 
 stopOnFail: true
