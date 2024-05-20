@@ -22,6 +22,7 @@ error EchidnaHelpers__TooLowTokensDistributable();
 
 /**
  * @title Helpers of distribution contract
+ * @author 0xharold
  */
 contract EchidnaHelpers is EchidnaMerkleHelpers {
     Distribution public distribution;

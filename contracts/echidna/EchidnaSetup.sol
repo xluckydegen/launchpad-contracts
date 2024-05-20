@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {IHevm} from "./IHevm.sol";
-import {EchidnaConfig} from "./EchidnaConfig.sol";
+import { IHevm } from "./IHevm.sol";
+import { EchidnaConfig } from "./EchidnaConfig.sol";
 
 /**
  * @title Mixin for fuzzing setup and a smart contract deployment

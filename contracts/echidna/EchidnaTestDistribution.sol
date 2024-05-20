@@ -16,6 +16,7 @@ error EchidnaTestDistribution_NothingToClaim();
 
 /**
  * @title Fuzzing Campaign to test invariants
+ * @author 0xharold
  */
 contract EchidnaTestDistribution is EchidnaHelpers {
     constructor() {}
