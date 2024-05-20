@@ -1,5 +1,25 @@
 # Launchpad Contracts
 
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+        <a href="#installation">Installation</a>
+    </li>
+    <li>
+        <a href="#rebuild-contracts">Fuzzing</a>
+    </li>
+    <li>
+        <a href="#links">Links</a>
+    </li>
+    <li>
+        <a href="#contacts">Contacts</a>
+    </li>
+  </ol>
+</details>
+
+
 ## Installation
 
 Be sure you have foundry installed (if not, follow instructions [here](https://book.getfoundry.sh/getting-started/installation)), then run:
@@ -10,14 +30,14 @@ foundryup
 forge install
 ```
 
-## Rebuild contracts
+### Rebuild Contracts
 
 ```bash
 rm cache -r -fo;rm artifacts -r -fo;rm typechain-types -r -fo; npx hardhat compile
 forge build
 ```
 
-## Test contracts
+### Test contracts
 
 ```bash
 npx hardhat test
@@ -25,6 +45,8 @@ forge test
 ```
 
 ## Fuzzing
+
+More details about fuzzing campaign can be found at the **[Fuzzing Report](./contracts/echidna/fuzzing-report.md)**.
 
 ### Run fuzzing campaigns
 
@@ -36,13 +58,11 @@ forge test
 // constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 ```
 
-and comment out:
+and comment out in [MockERC20](./contracts/echidna/MockERC20.sol):
 
 ```solidity
 constructor(string memory name, string memory symbol) ERC20(name, symbol) Ownable(msg.sender) {}
 ```
-
-out in [MockERC20](./contracts/echidna/MockERC20.sol).
 
 This is necessary due to **hardhat/foundry incompatibility issues**. 📢⚠️
 
@@ -65,3 +85,9 @@ echidna --contract <CONTRACT-NAME> --config /src/echidna-config.yaml /src/contra
 ## Links
 
 - Sepolia CA: https://luckydegen.gitbook.io/community-launchpad/api-reference/contracts
+
+
+## Contacts
+
+- contracts developed by luckydegen ([Angel Squad](https://www.angelssquad.com/))
+- fuzzing brought by [0xharold](lubos.harasta@themama.ai) ([MAMA AI](https://themama.ai/))

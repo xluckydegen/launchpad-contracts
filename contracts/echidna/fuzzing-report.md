@@ -2,13 +2,15 @@
 
 This report contains defined invariants and validation of fuzz tests by bug injections. To run the fuzzing campaign, please follow the instructions in [Readme.md](../../readme.md).
 
+Furthermore, during building the fuzzing campaign, several tests were written (see tests at [test/foundry](../../test/foundry/)) mostly to facilitate debugging.
+
 ## Invariants
 
 ### Assumptions, simplifications
 
-1. Currently we do not aim to fuzz multiple distributions running simultaneously (to simplify fuzzing process for now).
-2. Regarding to the point 1, we do not fuzz multiple claims at once, i.e. `claimMultiple` in [Distribution](./contracts/v2/DistributionV2.sol).
-3. `emergencyImportClaims` needs to be as flexible as possible for unexpected emergency situation, thus it is not the subject of fuzzing campaign.
+1. Currently, we do not aim to fuzz multiple distributions running simultaneously (to simplify the fuzzing process for now).
+2. Regarding to the point 1, we do not fuzz multiple claims at once, i.e., `claimMultiple` in [Distribution](./contracts/v2/DistributionV2.sol).
+3. `emergencyImportClaims` needs to be as flexible as possible for unexpected emergency situation; thus it is not the subject of fuzzing campaign either.
 
 Below is the list of invariants:
 
@@ -16,7 +18,7 @@ Below is the list of invariants:
 
 - [x] 1. Users cannot claim more tokens than their `maxAmount`
 - [x] 2. User cannot claim if `enabled` flag in `DistributionData` is set to `true`.
-- [ ] 3. User cannot claim more tokens proportionally to `tokensDistributable`. i.e. user's balance after claim must be always equal to the tokens claimable in the given round.
+- [ ] (PARTIALLY TESTED) 3. User cannot claim more tokens proportionally to `tokensDistributable`. i.e. user's balance after claim must be always equal to the tokens claimable in the given round.
 - [x] 4. User's token balance must always increase after successful claim.
 - [x] 5. Distribution's token balance must always decrease after successful claim.
 - [x] 6. User can always claim if eligible.

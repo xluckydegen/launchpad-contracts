@@ -15,8 +15,8 @@ error EchidnaMerkleHelpers__ZeroAmount();
 error EchidnaMerkleHelpers__TooSmallAmount();
 
 /// @title Echidna Merkle Helpers
-/// @notice EchidnaMerkleHelpers serves to substitute the process of Distribution Data Generation which is an off-chain process
-/// the idea here is to let Echidna create own distribution data on-chain
+/// @notice EchidnaMerkleHelpers serves to substitute the process of Distribution Data Generation which is an off-chain process;
+/// the idea here is to let Echidna create own distribution data 'on-chain'
 contract EchidnaMerkleHelpers is EchidnaSetup {
     struct User {
         address userAddress;
