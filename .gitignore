@@ -16,6 +16,8 @@ artifacts
 # Foundry files
 out
 
-
+# Echidna
+crytic-export
+echidna-corpus
 
 yarn.lock

@@ -1,10 +1,22 @@
 testMode: "assertion"
 
-cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=/src/contracts/ @openzeppelin/=/src/node_modules/@openzeppelin/ @prb=/src/node_modules/@prb"]
+cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=contracts/ murky/=lib/murky/ @openzeppelin/=node_modules/@openzeppelin/ @prb=node_modules/@prb"]
+# docker version
+# cryticArgs: ["--ignore-compile", "--solc-remaps", "contracts/=/src/contracts/ murky/=/src/lib/murky/ @openzeppelin/=/src/node_modules/@openzeppelin/ @prb=/src/node_modules/@prb"]
+
+# testLimit: 10000000 # 10M
+testLimit: 1000000 # 1M
+# testLimit: 500000 # 500K
+# testLimit: 100000 # 100K
+
+stopOnFail: true
+shrinkLimit: 10000
+
+deployer: "0xfffff"
 
 corpusDir: echidna-corpus
-
-allContracts: true
-allowFFI: true
-
+allContracts: false
+coverage: true
 codeSize: 0xffffffffff
+
+workers: 2

@@ -265,6 +265,10 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         emit DistributionClaimed(distributionUuid, claimingAddress, amountToClaim, claimedTotal);
     }
 
+    /**
+     * @notice emergency import claims
+     * @notice in case of emergency withdrawal in an ongoing distribution, this serves to import claims to the newly created distribution
+     */
     function emergencyImportClaims(
         string memory distributionUuid,
         DistributionImportRecord[] memory records
@@ -322,5 +326,23 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
             }
         }
         return result;
+    }
+
+    function getDistributionData(
+        string memory uuid
+    ) external view returns (DistributionData memory) {
+        return distributions[uuid];
+    }
+
+    function getWalletClaims(string memory uuid, address wallet) external view returns (uint256) {
+        return walletClaims[uuid][wallet];
+    }
+
+    function getAlreadyDeposited(string memory uuid) external view returns (uint256) {
+        return distributionDeposited[uuid];
+    }
+
+    function getAlreadyClaimed(string memory uuid) external view returns (uint256) {
+        return distributionClaimed[uuid];
     }
 }

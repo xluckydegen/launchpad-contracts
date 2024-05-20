@@ -36,8 +36,8 @@ contract DistributionWalletChange is
 {
     //data
     mapping(string => WalletChangeData) public walletChanges;
-    mapping(address => address) public walletChangesFromTo; // former old address (the original one, now invalid)
-    mapping(address => address) public walletChangesToFrom; // new address to redirect funds to
+    mapping(address => address) public walletChangesFromTo; // former old address (the original one, now invalid) to the new one
+    mapping(address => address) public walletChangesToFrom; // the new address to the original one
 
     //events
     event WalletChanged(address wallet); // change to event WalletChanged(address from, address to) to improve readability?
@@ -106,6 +106,10 @@ contract DistributionWalletChange is
         emit WalletChanged(walletChangeStored.walletFrom);
     }
 
+    /**
+     * @notice translate address to source address
+     * @param wallet the wallet address which is making the transaction (ie claim)
+     */
     function translateAddressToSourceAddress(address wallet) external view returns (address) {
         //if input address is already redirected address, disable the next run
         if (walletChangesFromTo[wallet] != address(0)) {
@@ -119,5 +123,23 @@ contract DistributionWalletChange is
 
         //if address is not in maps, return as is
         return wallet;
+    }
+
+    /////////////
+    // GETTERS //
+    /////////////
+
+    function getWalletChange(string memory uuid) public view returns (WalletChangeData memory) {
+        return walletChanges[uuid];
+    }
+
+    /// @notice get the address of the new wallet  (i.e., address which was redirected to) by the original address
+    function getWalletFromTo(address originalWallet) public view returns (address) {
+        return walletChangesFromTo[originalWallet];
+    }
+
+    /// @notice get the address of the original wallet (i.e., address which was redirected from) by the new address
+    function getWalletToFrom(address newWallet) public view returns (address) {
+        return walletChangesToFrom[newWallet];
     }
 }
