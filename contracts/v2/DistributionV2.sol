@@ -84,6 +84,10 @@ interface IDistribution {
     ) external;
 }
 
+/**
+ * @title Distribution Contract
+ * @author luckydegen
+ */
 contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw {
     //last update
     uint256 public lastChangeAt;
@@ -113,7 +117,11 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         distributionWalletChange = _ditributiondistribution;
     }
 
-    //register distribution (can be called multiple times)
+    /**
+     * @notice Register/update distribution.
+     * @param distribution The data containing info for a given distribution.
+     * @dev Can be called multiple times.
+     */
     function storeDistribution(
         DistributionData memory distribution
     ) public override onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -165,7 +173,11 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         emit DistributionStored(distribution.uuid);
     }
 
-    //deposit tokens to distribution
+    /**
+     * @notice Deposit tokens to a distribution
+     * @param distributionUuid The uuid of the distribution
+     * @param depositAmount The amount of tokens to deposit
+     */
     function depositTokensToDistribution(
         string memory distributionUuid,
         uint256 depositAmount
@@ -196,7 +208,10 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         emit DistributionDeposited(distributionUuid, depositAmount);
     }
 
-    //claiming multiple distributions in one tx
+    /**
+     * @notice Claim tokens from multiple distributions in one transaction
+     * @param claims Multiple claims data to be processed
+     */
     function claimMultiple(DistributionClaimParams[] memory claims) public {
         for (uint256 claimNo = 0; claimNo < claims.length; claimNo++) {
             claim(
@@ -208,7 +223,10 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     }
 
     /**
-     * claim tokens from a distribution
+     * @notice Claim tokens from a given distribution
+     * @param distributionUuid The uuid of the distribution
+     * @param maxAmount The amount of tokens to claim
+     * @param proof The merkle proof to validate the user
      * @dev flow: (1) validate distribution data, (2) validate merkle proof, (3) perform calculations, (4) validate calculations,
      * (5) update storage, (6) transfer
      */
@@ -266,8 +284,11 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
     }
 
     /**
-     * @notice emergency import claims
-     * @notice in case of emergency withdrawal in an ongoing distribution, this serves to import claims to the newly created distribution
+     * @notice Emergency import claims
+     * @param distributionUuid The uuid of the distribution
+     * @param records The claims data to be imported
+     * @dev In case of emergency withdrawal in an ongoing distribution, this serves to import claims to the newly created distribution
+     * which substitutes the previous one.
      */
     function emergencyImportClaims(
         string memory distributionUuid,
@@ -285,24 +306,46 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         }
     }
 
+    /**
+     * @notice Emergency distribution pause
+     * @param _paused The pause state
+     */
     function emergencyDistributionsPause(bool _paused) external onlyRole(DEFAULT_ADMIN_ROLE) {
         distributionsPaused = _paused;
     }
 
+    /**
+     * @notice Distribution wallets claims count
+     * @param distributionUuid The uuid of the distribution
+     * @dev Returns the amount of claims for the given distribution
+     */
     function distributionWalletsClaimsCount(
         string memory distributionUuid
     ) external view returns (uint256) {
         return distributionWalletsClaims[distributionUuid].length;
     }
 
+    /**
+     * @notice Distribution count
+     * @dev Returns the amount of distributions
+     */
     function distributionsCount() external view returns (uint256) {
         return distributionsIndexed.length;
     }
 
+    /**
+     * @notice Distribution array
+     * @dev Returns the array of distribution uuids
+     */
     function distributionsArray() external view returns (string[] memory) {
         return distributionsIndexed;
     }
 
+    /**
+     * @notice Distribution state array
+     * @param changedFrom The timestamp of the last change
+     * @dev Returns the array of distribution states
+     */
     function distributionsStateArray(
         uint256 changedFrom
     ) external view returns (DistributionState[] memory) {
@@ -328,20 +371,41 @@ contract Distribution is IDistribution, AccessControl, BehaviorEmergencyWithdraw
         return result;
     }
 
+    /**
+     * @notice Distribution data
+     * @param uuid The uuid of the distribution
+     * @dev Returns the distribution data
+     */
     function getDistributionData(
         string memory uuid
     ) external view returns (DistributionData memory) {
         return distributions[uuid];
     }
 
+    /**
+     * @notice Get wallet claims
+     * @param uuid The uuid of the distribution
+     * @param wallet The wallet address
+     * @dev Returns the amount of claims for the given wallet and given distribution
+     */
     function getWalletClaims(string memory uuid, address wallet) external view returns (uint256) {
         return walletClaims[uuid][wallet];
     }
 
+    /**
+     * @notice Get already deposited
+     * @param uuid The uuid of the distribution
+     * @dev Returns the amount of deposited tokens in the given distribution
+     */
     function getAlreadyDeposited(string memory uuid) external view returns (uint256) {
         return distributionDeposited[uuid];
     }
 
+    /**
+     * @notice Get already claimed
+     * @param uuid The uuid of the distribution
+     * @dev Returns the amount of claimed tokens for the given distribution
+     */
     function getAlreadyClaimed(string memory uuid) external view returns (uint256) {
         return distributionClaimed[uuid];
     }

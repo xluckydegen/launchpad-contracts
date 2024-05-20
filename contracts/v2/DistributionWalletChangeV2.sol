@@ -29,6 +29,10 @@ interface IDistributionWalletChange {
     function translateAddressToSourceAddress(address wallet) external view returns (address);
 }
 
+/**
+ * @title Distribution Wallet Change
+ * @author luckydegen
+ */
 contract DistributionWalletChange is
     IDistributionWalletChange,
     AccessControl,
@@ -46,6 +50,11 @@ contract DistributionWalletChange is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    /**
+     * @notice Store wallet change
+     * @param walletChange The data containing the wallet change
+     * @dev Signature and message are not being used now
+     */
     function storeWalletChange(
         WalletChangeData memory walletChange
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -89,6 +98,10 @@ contract DistributionWalletChange is
         emit WalletChanged(walletChange.walletFrom);
     }
 
+    /**
+     * @notice Remove wallet change
+     * @param uuid The uuid of the wallet change
+     */
     function removeWalletChange(string memory uuid) public onlyRole(DEFAULT_ADMIN_ROLE) {
         WalletChangeData memory walletChangeStored = walletChanges[uuid];
         if (walletChangeStored.createdAt == 0) {
@@ -107,8 +120,8 @@ contract DistributionWalletChange is
     }
 
     /**
-     * @notice translate address to source address
-     * @param wallet the wallet address which is making the transaction (ie claim)
+     * @notice Translate address to source address
+     * @param wallet The wallet address which is making the transaction (ie claim)
      */
     function translateAddressToSourceAddress(address wallet) external view returns (address) {
         //if input address is already redirected address, disable the next run
@@ -129,16 +142,29 @@ contract DistributionWalletChange is
     // GETTERS //
     /////////////
 
+    /**
+     * @notice Get wallet change
+     * @param uuid The uuid of the wallet change
+     * @dev Returns the data containing the wallet change
+     */
     function getWalletChange(string memory uuid) public view returns (WalletChangeData memory) {
         return walletChanges[uuid];
     }
 
-    /// @notice get the address of the new wallet  (i.e., address which was redirected to) by the original address
+    /**
+     * @notice Get the address of the new wallet
+     * @param originalWallet The original address (i.e., address which was redirected from)
+     * @dev Returns the new address (i.e., address which was redirected to)
+     */
     function getWalletFromTo(address originalWallet) public view returns (address) {
         return walletChangesFromTo[originalWallet];
     }
 
-    /// @notice get the address of the original wallet (i.e., address which was redirected from) by the new address
+    /**
+     * @notice Get the address of the new wallet
+     * @param newWallet The new address (i.e., address which was redirected to)
+     * @dev Returns the original address (i.e., address which was redirected from)
+     */
     function getWalletToFrom(address newWallet) public view returns (address) {
         return walletChangesToFrom[newWallet];
     }
